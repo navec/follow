@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 
-import type { AccessTokenPayload, TokenServicePort } from "@application/auth/ports/out/token-service.port.js";
+import type {
+  AccessTokenPayload,
+  TokenServicePort,
+} from "@application/auth/ports/out/token-service.port.js";
 
 type JwtExpiresIn = Exclude<jwt.SignOptions["expiresIn"], undefined>;
 
@@ -16,13 +19,12 @@ export class JwtTokenService implements TokenServicePort {
     return jwt.sign(payload, this.options.secret, {
       algorithm: "HS256",
       expiresIn: this.options.expiresIn,
-      subject: payload.sub
     });
   }
 
   verifyAccessToken(token: string): AccessTokenPayload {
     const decoded = jwt.verify(token, this.options.secret, {
-      algorithms: ["HS256"]
+      algorithms: ["HS256"],
     });
 
     if (typeof decoded !== "object" || decoded === null) {

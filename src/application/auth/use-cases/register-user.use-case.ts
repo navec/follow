@@ -12,7 +12,7 @@ export class RegisterUserUseCase {
   constructor(
     private readonly userRepository: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly tokenService: TokenServicePort
+    private readonly tokenService: TokenServicePort,
   ) {}
 
   async execute(input: RegisterInputDto): Promise<AuthResponseDto> {
@@ -24,11 +24,14 @@ export class RegisterUserUseCase {
 
     const passwordHash = await this.passwordHasher.hash(input.password);
     const user = await this.userRepository.create({ email, passwordHash });
-    const accessToken = this.tokenService.signAccessToken({ sub: user.id, email: user.email });
+    const accessToken = this.tokenService.signAccessToken({
+      sub: user.id,
+      email: user.email,
+    });
 
     return {
       user: toPublicUser(user),
-      accessToken
+      accessToken,
     };
   }
 }

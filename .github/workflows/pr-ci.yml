@@ -117,7 +117,7 @@ jobs:
           }
 
           const exists = await client.query(
-            \"SELECT 1 FROM pg_database WHERE datname = 'follow_test' LIMIT 1\"
+            "SELECT 1 FROM pg_database WHERE datname = 'follow_test' LIMIT 1"
           );
 
           if (exists.rowCount === 0) {

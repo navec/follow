@@ -69,6 +69,8 @@ Créer la base de test dédiée (une fois) :
 
 ```bash
 docker exec -it follow-postgres createdb -U postgres follow_test
+# ou via le script du projet (lit TEST_DATABASE_URL)
+npm run db:test:create
 ```
 
 ## Scripts
@@ -79,10 +81,11 @@ npm run typecheck    # TypeScript strict
 npm run lint         # ESLint
 npm run lint:fix     # auto-fix + tri imports
 npm run test:unit    # tests unitaires co-localisés (domain/application)
-npm run test:unit:coverage
+npm run test:coverage  # coverage sur unitaires + intégration
 npm run test:integration  # nécessite TEST_DATABASE_URL + DB follow_test
 npm run build        # build -> dist/
 npm run db:migrate:new -- create_users
+npm run db:test:create   # crée la DB de test depuis TEST_DATABASE_URL
 npm run db:migrate:up
 npm run db:migrate:down
 npm run db:migrate:status
@@ -155,6 +158,6 @@ Workflow PR :
 Reproduire le gate coverage localement (exemple) :
 
 ```bash
-GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD npm run test:unit:coverage
+GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD npm run test:coverage
 GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD node scripts/check-changed-files-coverage.mjs
 ```

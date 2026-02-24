@@ -23,7 +23,7 @@ class InMemoryUserRepository implements UserRepositoryPort {
       email: input.email,
       passwordHash: input.passwordHash,
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
-      updatedAt: new Date("2026-02-22T00:00:00.000Z")
+      updatedAt: new Date("2026-02-22T00:00:00.000Z"),
     };
     this.users.set(user.email, user);
     return user;
@@ -66,11 +66,16 @@ class FakeTokenService implements TokenServicePort {
 describe("RegisterUserUseCase", () => {
   it("registers a user and returns an access token", async () => {
     const repo = new InMemoryUserRepository();
-    const useCase = new RegisterUserUseCase(repo, new FakePasswordHasher(), new FakeTokenService());
+    const useCase = new RegisterUserUseCase(
+      repo,
+      new FakePasswordHasher(),
+      new FakeTokenService(),
+    );
 
     const result = await useCase.execute({
       email: "  USER@example.com ",
-      password: "StrongPass123!"
+      password: "StrongPass123!",
+      verifyPassword: "StrongPass123!",
     });
 
     expect(result.user.id).toBe("user-1");
@@ -85,12 +90,20 @@ describe("RegisterUserUseCase", () => {
       email: "user@example.com",
       passwordHash: "hash:x",
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
-      updatedAt: new Date("2026-02-22T00:00:00.000Z")
+      updatedAt: new Date("2026-02-22T00:00:00.000Z"),
     });
-    const useCase = new RegisterUserUseCase(repo, new FakePasswordHasher(), new FakeTokenService());
+    const useCase = new RegisterUserUseCase(
+      repo,
+      new FakePasswordHasher(),
+      new FakeTokenService(),
+    );
 
     await expect(
-      useCase.execute({ email: "user@example.com", password: "StrongPass123!" })
+      useCase.execute({
+        email: "user@example.com",
+        password: "StrongPass123!",
+        verifyPassword: "StrongPass123!",
+      }),
     ).rejects.toBeInstanceOf(AuthConflictError);
   });
 });

@@ -79,7 +79,7 @@ npm run typecheck    # TypeScript strict
 npm run lint         # ESLint
 npm run lint:fix     # auto-fix + tri imports
 npm run test:unit    # tests unitaires co-localisés (domain/application)
-npm run test:unit:coverage
+npm run test:coverage  # coverage sur unitaires + intégration
 npm run test:integration  # nécessite TEST_DATABASE_URL + DB follow_test
 npm run build        # build -> dist/
 npm run db:migrate:new -- create_users
@@ -155,6 +155,6 @@ Workflow PR :
 Reproduire le gate coverage localement (exemple) :
 
 ```bash
-GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD npm run test:unit:coverage
+GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD npm run test:coverage
 GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD node scripts/check-changed-files-coverage.mjs
 ```

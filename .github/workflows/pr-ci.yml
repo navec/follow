@@ -132,7 +132,27 @@ jobs:
     name: Coverage (Changed Files >= 90%)
     if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/follow
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/follow_test
+      JWT_SECRET: ci-secret
+      JWT_EXPIRES_IN: 1h
+      PORT: 3000
+      NODE_ENV: test
       GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       MIN_NEW_CODE_COVERAGE: "90"
@@ -145,5 +165,42 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run test:unit:coverage
+      - name: Create test database
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          let client;
+
+          for (let i = 0; i < 20; i += 1) {
+            try {
+              client = new pg.Client({
+                connectionString: 'postgres://postgres:postgres@localhost:5432/postgres'
+              });
+              await client.connect();
+              break;
+            } catch {
+              if (client) {
+                try { await client.end(); } catch {}
+              }
+              await sleep(2000);
+            }
+          }
+
+          if (!client) {
+            throw new Error('Postgres service did not become ready');
+          }
+
+          const exists = await client.query(
+            "SELECT 1 FROM pg_database WHERE datname = 'follow_test' LIMIT 1"
+          );
+
+          if (exists.rowCount === 0) {
+            await client.query('CREATE DATABASE follow_test');
+          }
+
+          await client.end();
+          NODE
+      - run: npm run test:coverage
       - run: node scripts/check-changed-files-coverage.mjs

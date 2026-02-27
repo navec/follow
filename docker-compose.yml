@@ -18,5 +18,26 @@ services:
       retries: 10
       start_period: 5s
 
+  app-ci:
+    image: node:24-bookworm
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/follow
+      TEST_DATABASE_URL: postgres://postgres:postgres@postgres:5432/follow_test
+      JWT_SECRET: ci-secret
+      JWT_EXPIRES_IN: 1h
+      PORT: 3000
+      NODE_ENV: test
+      CI: "true"
+    volumes:
+      - .:/workspace
+      - app_node_modules:/workspace/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["bash", "-lc", "node -v && npm -v"]
+
 volumes:
   postgres_data:
+  app_node_modules:

@@ -32,6 +32,7 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => {
     void shutdown();
   });
+
   process.on("SIGTERM", () => {
     void shutdown();
   });

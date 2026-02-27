@@ -1,5 +1,8 @@
 import { toPublicUser } from "@domain/auth/entities/user.js";
-import { AuthConflictError } from "@domain/auth/errors/auth-errors.js";
+import {
+  AuthConflictError,
+  AuthPasswordMismatchError,
+} from "@domain/auth/errors/auth-errors.js";
 import { Email } from "@domain/auth/value-objects/email.js";
 
 import type { AuthResponseDto } from "../dto/auth-response.dto.js";
@@ -16,6 +19,10 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterInputDto): Promise<AuthResponseDto> {
+    if (input.password !== input.verifyPassword) {
+      throw new AuthPasswordMismatchError();
+    }
+
     const email = Email.create(input.email).value;
     const existing = await this.userRepository.findByEmail(email);
     if (existing) {

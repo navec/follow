@@ -91,6 +91,35 @@ npm run db:migrate:down
 npm run db:migrate:status
 ```
 
+## Reproduire la CI localement (Makefile + Docker)
+
+Le `Makefile` orchestre l'exécution dans un conteneur `node:24` avec Postgres Docker, pour coller au plus près de GitHub Actions.
+
+```bash
+make up         # démarre Postgres
+make ci-draft   # lint + typecheck + build (équivalent PR draft)
+make ci-ready   # équivalent PR ready (tests unitaires + intégration + coverage)
+make ci-ready-fast # idem sans docker build (plus rapide en local)
+make ci         # alias de ci-ready
+make down       # stoppe les services
+```
+
+Exécuter un sous-ensemble :
+
+```bash
+make test-unit
+make test-integration
+make test-coverage
+make db-test-create
+make deps       # installe dépendances dans le conteneur (cache local)
+```
+
+Gate coverage fichiers modifiés (si SHAs disponibles) :
+
+```bash
+GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD make coverage-gate
+```
+
 ## Image Docker de l'application (runtime minimale)
 
 Build :

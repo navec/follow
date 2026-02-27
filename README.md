@@ -101,6 +101,7 @@ make ci-draft   # lint + typecheck + build (équivalent PR draft)
 make ci-ready   # équivalent PR ready (tests unitaires + intégration + coverage)
 make ci-ready-fast # idem sans docker build (plus rapide en local)
 make ci         # alias de ci-ready
+make install-hooks # active le pre-commit hook (make ci-draft à chaque commit)
 make down       # stoppe les services
 ```
 

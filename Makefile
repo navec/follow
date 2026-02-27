@@ -7,7 +7,7 @@ APP_CI := $(DC) run --rm -e GITHUB_BASE_SHA -e GITHUB_HEAD_SHA -e MIN_NEW_CODE_C
 APP_CI_ROOT := $(DC) run --rm --user root app-ci
 DEPS_STAMP := .make/deps.stamp
 
-.PHONY: help up down logs ps shell ci-draft ci-ready ci-ready-fast ci install deps fix-app-ci-perms lint typecheck build docker-build test-unit test-integration test-coverage db-test-create coverage-gate wait-db
+.PHONY: help up down logs ps shell install-hooks ci-draft ci-ready ci-ready-fast ci install deps fix-app-ci-perms lint typecheck build docker-build test-unit test-integration test-coverage db-test-create coverage-gate wait-db
 
 help:
 	@echo "Targets:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make down            # stop services"
 	@echo "  make logs            # postgres logs"
 	@echo "  make shell           # shell in app-ci container"
+	@echo "  make install-hooks   # active les hooks git versionnés (.githooks)"
 	@echo "  make ci-draft        # lint + typecheck + build (PR draft)"
 	@echo "  make ci-ready        # ci-draft + unit + integration + coverage (PR ready)"
 	@echo "  make ci-ready-fast   # ci-ready sans docker build (itération locale)"
@@ -48,6 +49,10 @@ wait-db: up
 
 shell: wait-db
 	$(APP_CI) bash
+
+install-hooks:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/pre-commit
 
 fix-app-ci-perms: wait-db
 	$(APP_CI_ROOT) bash -lc 'mkdir -p /workspace/node_modules && chmod -R a+rX /workspace/node_modules'

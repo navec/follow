@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { User } from "@domain/auth/entities/user.js";
-import { AuthConflictError } from "@domain/auth/errors/auth-errors.js";
+import {
+  AuthConflictError,
+  AuthPasswordMismatchError,
+} from "@domain/auth/errors/auth-errors.js";
 import { Email } from "@domain/auth/value-objects/email.js";
 
 import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";
@@ -65,9 +68,8 @@ class FakeTokenService implements TokenServicePort {
 
 describe("RegisterUserUseCase", () => {
   it("registers a user and returns an access token", async () => {
-    const repo = new InMemoryUserRepository();
     const useCase = new RegisterUserUseCase(
-      repo,
+      new InMemoryUserRepository(),
       new FakePasswordHasher(),
       new FakeTokenService(),
     );
@@ -105,5 +107,21 @@ describe("RegisterUserUseCase", () => {
         verifyPassword: "StrongPass123!",
       }),
     ).rejects.toBeInstanceOf(AuthConflictError);
+  });
+
+  it("throws when password and verifyPassword do not match", async () => {
+    const useCase = new RegisterUserUseCase(
+      new InMemoryUserRepository(),
+      new FakePasswordHasher(),
+      new FakeTokenService(),
+    );
+
+    await expect(
+      useCase.execute({
+        email: "user@example.com",
+        password: "StrongPass123!",
+        verifyPassword: "DifferentPass123!",
+      }),
+    ).rejects.toBeInstanceOf(AuthPasswordMismatchError);
   });
 });

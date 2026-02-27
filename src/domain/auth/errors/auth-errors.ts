@@ -14,6 +14,12 @@ export class AuthConflictError extends AuthError {
   }
 }
 
+export class AuthPasswordMismatchError extends AuthError {
+  constructor(message = "Password and verifyPassword must match") {
+    super("PASSWORD_MISMATCH", message);
+  }
+}
+
 export class AuthInvalidCredentialsError extends AuthError {
   constructor(message = "Invalid email or password") {
     super("INVALID_CREDENTIALS", message);

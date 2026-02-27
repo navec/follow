@@ -21,7 +21,7 @@ services:
   app-ci:
     image: node:24-bookworm
     working_dir: /workspace
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/follow
       TEST_DATABASE_URL: postgres://postgres:postgres@postgres:5432/follow_test

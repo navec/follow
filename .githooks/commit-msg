@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MSG_FILE="$1"
+HEADER="$(head -n 1 "$MSG_FILE" | tr -d '\r')"
+
+# Allow Git-generated merge/revert commits.
+if [[ "$HEADER" =~ ^Merge\  ]] || [[ "$HEADER" =~ ^Revert\ \" ]]; then
+  exit 0
+fi
+
+PATTERN='^(feat|fix|chore|docs|refactor|test|ci|perf|build)(\([a-z0-9._/-]+\))?!?: .+'
+
+if [[ "$HEADER" =~ $PATTERN ]]; then
+  exit 0
+fi
+
+echo "Invalid commit message format."
+echo "Expected: type(scope): summary"
+echo "Allowed types: feat, fix, chore, docs, refactor, test, ci, perf, build"
+echo "Example: feat(auth): enforce verifyPassword check"
+echo
+echo "Tip: run 'node scripts/suggest-commit-message.mjs' for a suggestion."
+exit 1

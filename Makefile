@@ -2,9 +2,9 @@ SHELL := /bin/bash
 
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
-DC := UID=$(HOST_UID) GID=$(HOST_GID) docker compose
-APP_CI := $(DC) run --rm -e GITHUB_BASE_SHA -e GITHUB_HEAD_SHA -e MIN_NEW_CODE_COVERAGE app-ci
-APP_CI_ROOT := $(DC) run --rm --user root app-ci
+DC := HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose
+APP_CI := $(DC) run --rm -T -e GITHUB_BASE_SHA -e GITHUB_HEAD_SHA -e MIN_NEW_CODE_COVERAGE app-ci
+APP_CI_ROOT := $(DC) run --rm -T --user root app-ci
 DEPS_STAMP := .make/deps.stamp
 
 .PHONY: help up down logs ps shell install-hooks ci-draft ci-ready ci-ready-fast ci install deps fix-app-ci-perms lint typecheck build docker-build test-unit test-integration test-coverage db-test-create coverage-gate wait-db
@@ -48,11 +48,12 @@ wait-db: up
 	exit 1
 
 shell: wait-db
-	$(APP_CI) bash
+	$(DC) run --rm -e GITHUB_BASE_SHA -e GITHUB_HEAD_SHA -e MIN_NEW_CODE_COVERAGE app-ci bash
 
 install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-commit
+	chmod +x .githooks/commit-msg
 
 fix-app-ci-perms: wait-db
 	$(APP_CI_ROOT) bash -lc 'mkdir -p /workspace/node_modules && chmod -R a+rX /workspace/node_modules'

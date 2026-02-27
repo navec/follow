@@ -121,6 +121,30 @@ Gate coverage fichiers modifiés (si SHAs disponibles) :
 GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD make coverage-gate
 ```
 
+## Normaliser les commits
+
+Le repo fournit des hooks git versionnés pour :
+- lancer `make ci-draft` avant chaque commit (`pre-commit`)
+- valider le format Conventional Commit (`commit-msg`)
+
+Format attendu :
+
+```text
+type(scope): summary
+```
+
+Exemple :
+
+```text
+feat(auth): enforce verifyPassword check
+```
+
+Activer les hooks :
+
+```bash
+make install-hooks
+```
+
 ## Image Docker de l'application (runtime minimale)
 
 Build :

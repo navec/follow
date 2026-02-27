@@ -101,6 +101,7 @@ make ci-draft   # lint + typecheck + build (équivalent PR draft)
 make ci-ready   # équivalent PR ready (tests unitaires + intégration + coverage)
 make ci-ready-fast # idem sans docker build (plus rapide en local)
 make ci         # alias de ci-ready
+make install-hooks # active le pre-commit hook (make ci-draft à chaque commit)
 make down       # stoppe les services
 ```
 
@@ -118,6 +119,30 @@ Gate coverage fichiers modifiés (si SHAs disponibles) :
 
 ```bash
 GITHUB_BASE_SHA=<base_sha> GITHUB_HEAD_SHA=HEAD make coverage-gate
+```
+
+## Normaliser les commits
+
+Le repo fournit des hooks git versionnés pour :
+- lancer `make ci-draft` avant chaque commit (`pre-commit`)
+- valider le format Conventional Commit (`commit-msg`)
+
+Format attendu :
+
+```text
+type(scope): summary
+```
+
+Exemple :
+
+```text
+feat(auth): enforce verifyPassword check
+```
+
+Activer les hooks :
+
+```bash
+make install-hooks
 ```
 
 ## Image Docker de l'application (runtime minimale)

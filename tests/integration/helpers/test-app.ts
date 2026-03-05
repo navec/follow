@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Pool } from "pg";
+import pino from "pino";
 
 import { createContainer } from "@src/bootstrap/container.js";
 import type { AppEnv } from "@infrastructure/config/index.js";
@@ -30,7 +31,8 @@ export async function createIntegrationTestContext(): Promise<IntegrationTestCon
     registerUserUseCase: container.registerUserUseCase,
     loginUserUseCase: container.loginUserUseCase,
     getCurrentUserUseCase: container.getCurrentUserUseCase,
-    tokenService: container.tokenService
+    tokenService: container.tokenService,
+    logger: pino({ enabled: false })
   });
 
   return {

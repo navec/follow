@@ -29,7 +29,7 @@ cp .env.example .env
 
 ## Variables d'environnement
 
-Voir `/Users/navec/Projects/follow/.env.example`.
+Voir `.env.example`.
 
 Variables clés:
 
@@ -177,7 +177,7 @@ Note: l'image utilise un `Dockerfile` multi-stage (`node:24-bookworm-slim`) et e
 
 ## Migration Postgres (MVP)
 
-Migrations SQL (timestampées) dans `/Users/navec/Projects/follow/src/infrastructure/persistence/postgres/migrations/`.
+Migrations SQL (timestampées) dans `src/infrastructure/persistence/postgres/migrations/`.
 
 Exemples :
 
@@ -186,7 +186,7 @@ Exemples :
 - `npm run db:migrate:down`
 - `npm run db:migrate:status`
 
-Migration initiale actuelle : `/Users/navec/Projects/follow/src/infrastructure/persistence/postgres/migrations/20260223T160000_create_users.up.sql`
+Migration initiale actuelle : `src/infrastructure/persistence/postgres/migrations/20260223T160000_create_users.up.sql`
 
 ## Tests d'intégration (Express + Postgres)
 

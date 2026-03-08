@@ -11,7 +11,7 @@ function timestampUtcCompact(date = new Date()) {
   const hh = String(date.getUTCHours()).padStart(2, '0');
   const mi = String(date.getUTCMinutes()).padStart(2, '0');
   const ss = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${yyyy}${mm}${dd}T${hh}${mi}${ss}`;
+  return `${yyyy}${mm}${dd}${hh}${mi}${ss}000`;
 }
 
 function slugify(input) {
@@ -49,20 +49,24 @@ async function main() {
 
   const stamp = timestampUtcCompact();
   const base = `${stamp}_${name}`;
-  const upPath = path.join(migrationsDir, `${base}.up.sql`);
-  const downPath = path.join(migrationsDir, `${base}.down.sql`);
+  const upSqlPath = path.join(migrationsDir, `${base}.up.sql`);
+  const downSqlPath = path.join(migrationsDir, `${base}.down.sql`);
+  const upJsPath = path.join(migrationsDir, `${base}.up.js`);
 
   await mkdir(migrationsDir, { recursive: true });
-  await ensureDoesNotExist(upPath);
-  await ensureDoesNotExist(downPath);
+  await ensureDoesNotExist(upSqlPath);
+  await ensureDoesNotExist(downSqlPath);
+  await ensureDoesNotExist(upJsPath);
 
-  const upTemplate = `-- Up migration: ${name}\n-- Write SQL here\n`;
-  const downTemplate = `-- Down migration: ${name}\n-- Revert SQL here\n`;
+  const upSqlTemplate = `-- Up migration: ${name}\n-- Write SQL here\n`;
+  const downSqlTemplate = `-- Down migration: ${name}\n-- Revert SQL here\n`;
+  const upJsTemplate = `import { readFile } from 'node:fs/promises';\nimport path from 'node:path';\nimport { fileURLToPath } from 'node:url';\n\nconst dirname = path.dirname(fileURLToPath(import.meta.url));\nconst upPath = path.join(dirname, '${base}.up.sql');\nconst downPath = path.join(dirname, '${base}.down.sql');\n\nexport const up = async (pgm) => {\n  pgm.sql(await readFile(upPath, 'utf8'));\n};\n\nexport const down = async (pgm) => {\n  pgm.sql(await readFile(downPath, 'utf8'));\n};\n`;
 
-  await writeFile(upPath, upTemplate, 'utf8');
-  await writeFile(downPath, downTemplate, 'utf8');
+  await writeFile(upSqlPath, upSqlTemplate, 'utf8');
+  await writeFile(downSqlPath, downSqlTemplate, 'utf8');
+  await writeFile(upJsPath, upJsTemplate, 'utf8');
 
-  console.log(`Created:\n- ${upPath}\n- ${downPath}`);
+  console.log(`Created:\n- ${upSqlPath}\n- ${downSqlPath}\n- ${upJsPath}`);
 }
 
 main().catch((error) => {

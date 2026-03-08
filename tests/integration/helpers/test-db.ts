@@ -7,7 +7,7 @@ import type { Pool } from "pg";
 
 const migrationsDir = path.resolve(
   process.cwd(),
-  "src/infrastructure/persistence/postgres/migrations",
+  "src/infrastructure/persistence/postgres/migrations/*.up.js",
 );
 
 let migrationsApplied = false;
@@ -37,6 +37,7 @@ export async function migrateTestDbUpOnce(): Promise<void> {
   await runner({
     databaseUrl: getTestDatabaseUrl(),
     dir: migrationsDir,
+    useGlob: true,
     direction: "up",
     migrationsTable: "pgmigrations",
     checkOrder: true,

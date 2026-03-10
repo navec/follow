@@ -25,6 +25,8 @@ class InMemoryUserRepository implements UserRepositoryPort {
       id: "user-1",
       email: input.email,
       passwordHash: input.passwordHash,
+      role: "user",
+      permissions: [],
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
       updatedAt: new Date("2026-02-22T00:00:00.000Z"),
     };
@@ -82,6 +84,7 @@ describe("RegisterUserUseCase", () => {
 
     expect(result.user.id).toBe("user-1");
     expect(result.user.email).toBe(Email.create("user@example.com").value);
+    expect(result.user.role).toBe("user");
     expect(result.accessToken).toBe("token:user-1:user@example.com");
   });
 
@@ -91,6 +94,8 @@ describe("RegisterUserUseCase", () => {
       id: "existing-1",
       email: "user@example.com",
       passwordHash: "hash:x",
+      role: "user",
+      permissions: [],
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
       updatedAt: new Date("2026-02-22T00:00:00.000Z"),
     });

@@ -1,0 +1,3 @@
+ALTER TABLE users
+DROP COLUMN IF EXISTS permissions,
+DROP COLUMN IF EXISTS role;

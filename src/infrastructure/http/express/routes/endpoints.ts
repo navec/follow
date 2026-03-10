@@ -7,8 +7,8 @@ export interface RouteDefinition {
 }
 
 export interface RouteGroupDefinition {
-  id: "root" | "auth";
-  basePath: "" | "/auth";
+  id: "root" | "auth" | "media";
+  basePath: "" | "/auth" | "/media";
   routes: ReadonlyArray<RouteDefinition>;
 }
 
@@ -25,6 +25,13 @@ export type AuthRouteDefinition = RouteDefinition & {
   requireAuth: boolean;
 };
 
+export type MediaRouteDefinition = RouteDefinition & {
+  id: "sync";
+  path: "/sync";
+  method: "POST";
+  requireAuth: true;
+};
+
 export const ROOT_ROUTES: ReadonlyArray<RootRouteDefinition> = [
   { id: "health", method: "GET", path: "/health" },
 ];
@@ -35,9 +42,14 @@ export const AUTH_ROUTES: ReadonlyArray<AuthRouteDefinition> = [
   { id: "me", method: "GET", path: "/me", requireAuth: true },
 ];
 
+export const MEDIA_ROUTES: ReadonlyArray<MediaRouteDefinition> = [
+  { id: "sync", method: "POST", path: "/sync", requireAuth: true }
+];
+
 export const ROUTE_GROUPS: ReadonlyArray<RouteGroupDefinition> = [
   { id: "root", basePath: "", routes: ROOT_ROUTES },
   { id: "auth", basePath: "/auth", routes: AUTH_ROUTES },
+  { id: "media", basePath: "/media", routes: MEDIA_ROUTES }
 ];
 
 export interface FlatEndpoint {

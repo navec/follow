@@ -41,6 +41,8 @@ describe("GetCurrentUserUseCase", () => {
       id: "fake_user_id",
       email: "user@example.com",
       passwordHash: "hash:actual",
+      role: "user",
+      permissions: [],
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
       updatedAt: new Date("2026-02-22T00:00:00.000Z"),
     });
@@ -54,6 +56,7 @@ describe("GetCurrentUserUseCase", () => {
       user: {
         email: "user@example.com",
         id: "fake_user_id",
+        role: "user",
       },
     });
   });

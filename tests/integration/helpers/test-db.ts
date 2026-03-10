@@ -13,6 +13,43 @@ const migrationsDir = path.resolve(
 let migrationsApplied = false;
 let migrationPromise: Promise<void> | null = null;
 
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
+export async function runMigrationsWithRetry(
+  run: () => Promise<void>,
+  options: {
+    retries?: number;
+    delayMs?: number;
+    sleep?: (delayMs: number) => Promise<void>;
+  } = {},
+): Promise<void> {
+  const retries = options.retries ?? 3;
+  const delayMs = options.delayMs ?? 100;
+  const wait = options.sleep ?? sleep;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      await run();
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const isMigrationLockError = message.includes(
+        "Another migration is already running",
+      );
+
+      if (!isMigrationLockError || attempt === retries) {
+        throw error;
+      }
+
+      await wait(delayMs);
+    }
+  }
+}
+
 export function getTestDatabaseUrl(): string {
   const testDatabaseUrl = process.env.TEST_DATABASE_URL;
   const devDatabaseUrl = process.env.DATABASE_URL;
@@ -36,17 +73,19 @@ export async function migrateTestDbUpOnce(): Promise<void> {
   }
 
   if (!migrationPromise) {
-    migrationPromise = runner({
-      databaseUrl: getTestDatabaseUrl(),
-      dir: migrationsDir,
-      useGlob: true,
-      direction: "up",
-      migrationsTable: "pgmigrations",
-      checkOrder: true,
-      createSchema: true,
-      createMigrationsSchema: true,
-      log: () => undefined,
-      verbose: false,
+    migrationPromise = runMigrationsWithRetry(async () => {
+      await runner({
+        databaseUrl: getTestDatabaseUrl(),
+        dir: migrationsDir,
+        useGlob: true,
+        direction: "up",
+        migrationsTable: "pgmigrations",
+        checkOrder: true,
+        createSchema: true,
+        createMigrationsSchema: true,
+        log: () => undefined,
+        verbose: false,
+      });
     }).then(() => {
       migrationsApplied = true;
     });

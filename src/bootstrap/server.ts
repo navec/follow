@@ -1,11 +1,13 @@
 import { createServer } from "node:http";
 
 import "dotenv/config";
+import cron from "node-cron";
 
 import { loadEnv } from "@infrastructure/config/index.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 import { flattenEndpoints } from "@infrastructure/http/express/routes/endpoints.js";
 import { createLogger } from "@infrastructure/logging/logger.js";
+import { MediaSyncScheduler } from "@infrastructure/scheduling/media-sync.scheduler.js";
 
 import { createContainer } from "./container.js";
 
@@ -19,7 +21,12 @@ async function main(): Promise<void> {
     getCurrentUserUseCase: container.getCurrentUserUseCase,
     tokenService: container.tokenService,
     logger,
+    userRepository: container.userRepository,
+    authorizationService: container.authorizationService,
+    syncMediaUseCase: container.syncMediaUseCase,
   });
+  const scheduler = new MediaSyncScheduler(container.syncMediaUseCase, env, cron.schedule);
+  scheduler.start();
 
   const server = createServer(app);
 

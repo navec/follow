@@ -31,3 +31,9 @@ export class AuthUnauthorizedError extends AuthError {
     super("UNAUTHORIZED", message);
   }
 }
+
+export class AuthForbiddenError extends AuthError {
+  constructor(message = "Forbidden") {
+    super("FORBIDDEN", message);
+  }
+}

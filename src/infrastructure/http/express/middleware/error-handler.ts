@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import {
   AuthConflictError,
   AuthError,
+  AuthForbiddenError,
   AuthInvalidCredentialsError,
   AuthUnauthorizedError,
 } from "@domain/auth/errors/auth-errors.js";
@@ -40,6 +41,13 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   ) {
     res
       .status(401)
+      .json({ error: { code: error.code, message: error.message } });
+    return;
+  }
+
+  if (error instanceof AuthForbiddenError) {
+    res
+      .status(403)
       .json({ error: { code: error.code, message: error.message } });
     return;
   }

@@ -11,6 +11,7 @@ const migrationsDir = path.resolve(
 );
 
 let migrationsApplied = false;
+let migrationPromise: Promise<void> | null = null;
 
 export function getTestDatabaseUrl(): string {
   const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -34,20 +35,24 @@ export async function migrateTestDbUpOnce(): Promise<void> {
     return;
   }
 
-  await runner({
-    databaseUrl: getTestDatabaseUrl(),
-    dir: migrationsDir,
-    useGlob: true,
-    direction: "up",
-    migrationsTable: "pgmigrations",
-    checkOrder: true,
-    createSchema: true,
-    createMigrationsSchema: true,
-    log: () => undefined,
-    verbose: false,
-  });
+  if (!migrationPromise) {
+    migrationPromise = runner({
+      databaseUrl: getTestDatabaseUrl(),
+      dir: migrationsDir,
+      useGlob: true,
+      direction: "up",
+      migrationsTable: "pgmigrations",
+      checkOrder: true,
+      createSchema: true,
+      createMigrationsSchema: true,
+      log: () => undefined,
+      verbose: false,
+    }).then(() => {
+      migrationsApplied = true;
+    });
+  }
 
-  migrationsApplied = true;
+  await migrationPromise;
 }
 
 export async function truncateTestTables(

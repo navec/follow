@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { User } from "@domain/auth/entities/user.js";
 import {
@@ -45,6 +45,23 @@ class InMemoryUserRepository implements UserRepositoryPort {
 
   seed(user: User): void {
     this.users.set(user.email, user);
+  }
+}
+
+class SlowInMemoryUserRepository extends InMemoryUserRepository {
+  constructor(private readonly delayMs: number) {
+    super();
+  }
+
+  override async create(input: {
+    email: string;
+    passwordHash: string;
+  }): Promise<User> {
+    await new Promise((resolve) => {
+      setTimeout(resolve, this.delayMs);
+    });
+
+    return super.create(input);
   }
 }
 
@@ -128,5 +145,37 @@ describe("RegisterUserUseCase", () => {
         verifyPassword: "DifferentPass123!",
       }),
     ).rejects.toBeInstanceOf(AuthPasswordMismatchError);
+  });
+
+  it("serializes concurrent registrations for the same email", async () => {
+    vi.useFakeTimers();
+    try {
+      const useCase = new RegisterUserUseCase(
+        new SlowInMemoryUserRepository(50),
+        new FakePasswordHasher(),
+        new FakeTokenService(),
+      );
+
+      const payload = {
+        email: "user@example.com",
+        password: "StrongPass123!",
+        verifyPassword: "StrongPass123!",
+      };
+
+      const first = useCase.execute(payload);
+      const second = useCase.execute(payload);
+      const secondExpectation = expect(second).rejects.toBeInstanceOf(
+        AuthConflictError,
+      );
+
+      await vi.advanceTimersByTimeAsync(50);
+
+      await expect(first).resolves.toMatchObject({
+        user: { email: "user@example.com" },
+      });
+      await secondExpectation;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

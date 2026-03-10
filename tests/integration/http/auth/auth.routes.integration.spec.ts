@@ -30,24 +30,24 @@ describe("Auth routes integration (Express + Postgres)", () => {
 
   it("registers a user and stores a hashed password", async () => {
     const response = await request(ctx!.app).post("/auth/register").send({
-      email: "user@example.com",
+      email: "register-user@example.com",
       password: "StrongPass123!",
       verifyPassword: "StrongPass123!",
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.data.user.email).toBe("user@example.com");
+    expect(response.body.data.user.email).toBe("register-user@example.com");
     expect(typeof response.body.data.accessToken).toBe("string");
 
     const result = await ctx!.pgPool.query<{
       email: string;
       password_hash: string;
     }>("SELECT email, password_hash FROM users WHERE email = $1", [
-      "user@example.com",
+      "register-user@example.com",
     ]);
 
     expect(result.rowCount).toBe(1);
-    expect(result.rows[0]?.email).toBe("user@example.com");
+    expect(result.rows[0]?.email).toBe("register-user@example.com");
     expect(result.rows[0]?.password_hash).toBeDefined();
     expect(result.rows[0]?.password_hash).not.toBe("StrongPass123!");
     expect(result.rows[0]?.password_hash.startsWith("$argon2")).toBe(true);
@@ -57,14 +57,14 @@ describe("Auth routes integration (Express + Postgres)", () => {
     await request(ctx!.app)
       .post("/auth/register")
       .send({
-        email: "user@example.com",
+        email: "duplicate-user@example.com",
         password: "StrongPass123!",
         verifyPassword: "StrongPass123!",
       })
       .expect(201);
 
     const response = await request(ctx!.app).post("/auth/register").send({
-      email: "user@example.com",
+      email: "duplicate-user@example.com",
       password: "StrongPass123!",
       verifyPassword: "StrongPass123!",
     });
@@ -73,11 +73,31 @@ describe("Auth routes integration (Express + Postgres)", () => {
     expect(response.body.error.code).toBe("EMAIL_ALREADY_USED");
   });
 
+  it("returns 409 instead of 500 when concurrent registrations race on the same email", async () => {
+    const payload = {
+      email: "race@example.com",
+      password: "StrongPass123!",
+      verifyPassword: "StrongPass123!",
+    };
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      request(ctx!.app).post("/auth/register").send(payload),
+      request(ctx!.app).post("/auth/register").send(payload),
+    ]);
+
+    const statuses = [firstResponse.status, secondResponse.status].sort((a, b) => a - b);
+
+    expect(statuses).toEqual([201, 409]);
+    expect([firstResponse.body.error?.code, secondResponse.body.error?.code]).toContain(
+      "EMAIL_ALREADY_USED",
+    );
+  });
+
   it("logs in a user with valid credentials", async () => {
     await request(ctx!.app)
       .post("/auth/register")
       .send({
-        email: "user@example.com",
+        email: "login-user@example.com",
         password: "StrongPass123!",
         verifyPassword: "StrongPass123!",
       })
@@ -85,10 +105,10 @@ describe("Auth routes integration (Express + Postgres)", () => {
 
     const response = await request(ctx!.app)
       .post("/auth/login")
-      .send({ email: "user@example.com", password: "StrongPass123!" });
+      .send({ email: "login-user@example.com", password: "StrongPass123!" });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.user.email).toBe("user@example.com");
+    expect(response.body.data.user.email).toBe("login-user@example.com");
     expect(typeof response.body.data.accessToken).toBe("string");
   });
 
@@ -96,7 +116,7 @@ describe("Auth routes integration (Express + Postgres)", () => {
     await request(ctx!.app)
       .post("/auth/register")
       .send({
-        email: "user@example.com",
+        email: "invalid-password-user@example.com",
         password: "StrongPass123!",
         verifyPassword: "StrongPass123!",
       })
@@ -104,7 +124,7 @@ describe("Auth routes integration (Express + Postgres)", () => {
 
     const response = await request(ctx!.app)
       .post("/auth/login")
-      .send({ email: "user@example.com", password: "wrong-password" });
+      .send({ email: "invalid-password-user@example.com", password: "wrong-password" });
 
     expect(response.status).toBe(401);
     expect(response.body.error.code).toBe("INVALID_CREDENTIALS");
@@ -114,7 +134,7 @@ describe("Auth routes integration (Express + Postgres)", () => {
     const registerResponse = await request(ctx!.app)
       .post("/auth/register")
       .send({
-        email: "user@example.com",
+        email: "me-user@example.com",
         password: "StrongPass123!",
         verifyPassword: "StrongPass123!",
       })
@@ -127,7 +147,7 @@ describe("Auth routes integration (Express + Postgres)", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.data.user.email).toBe("user@example.com");
+    expect(response.body.data.user.email).toBe("me-user@example.com");
   });
 
   it("loads role and permissions defaults from Postgres", async () => {

@@ -58,7 +58,7 @@ describe("Media sync routes integration", () => {
   });
 
   it("returns 403 when the user lacks media:write", async () => {
-    const token = await registerAndGetToken("user@example.com");
+    const token = await registerAndGetToken("media-user@example.com");
 
     const response = await request(app!)
       .post("/media/sync")
@@ -78,13 +78,13 @@ describe("Media sync routes integration", () => {
   });
 
   it("starts a targeted sync for an authorized admin", async () => {
-    const token = await registerAndGetToken("admin@example.com");
+    const token = await registerAndGetToken("media-admin@example.com");
     await ctx!.pgPool.query(
       `UPDATE users
        SET role = 'admin',
            permissions = ARRAY['media:write']::text[]
        WHERE email = $1`,
-      ["admin@example.com"]
+      ["media-admin@example.com"]
     );
 
     const response = await request(app!)

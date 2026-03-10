@@ -12,6 +12,8 @@ import type { TokenServicePort } from "../ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
 
 export class RegisterUserUseCase {
+  private static readonly emailLocks = new Map<string, Promise<void>>();
+
   constructor(
     private readonly userRepository: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
@@ -24,21 +26,46 @@ export class RegisterUserUseCase {
     }
 
     const email = Email.create(input.email).value;
-    const existing = await this.userRepository.findByEmail(email);
-    if (existing) {
-      throw new AuthConflictError();
-    }
 
-    const passwordHash = await this.passwordHasher.hash(input.password);
-    const user = await this.userRepository.create({ email, passwordHash });
-    const accessToken = this.tokenService.signAccessToken({
-      sub: user.id,
-      email: user.email,
+    return this.withEmailLock(email, async () => {
+      const existing = await this.userRepository.findByEmail(email);
+      if (existing) {
+        throw new AuthConflictError();
+      }
+
+      const passwordHash = await this.passwordHasher.hash(input.password);
+      const user = await this.userRepository.create({ email, passwordHash });
+      const accessToken = this.tokenService.signAccessToken({
+        sub: user.id,
+        email: user.email,
+      });
+
+      return {
+        user: toPublicUser(user),
+        accessToken,
+      };
     });
+  }
 
-    return {
-      user: toPublicUser(user),
-      accessToken,
-    };
+  private async withEmailLock<T>(
+    email: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const previous = RegisterUserUseCase.emailLocks.get(email);
+    let release: (() => void) | undefined;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    RegisterUserUseCase.emailLocks.set(email, current);
+
+    try {
+      await previous;
+      return await operation();
+    } finally {
+      release?.();
+      if (RegisterUserUseCase.emailLocks.get(email) === current) {
+        RegisterUserUseCase.emailLocks.delete(email);
+      }
+    }
   }
 }

@@ -83,6 +83,34 @@ describe("SyncMediaUseCase", () => {
       AuthUnauthorizedError
     );
   });
+
+  it("throws when no provider supports the request provider", async () => {
+    const request: SyncRequest = {
+      provider: "mangadex",
+      params: {
+        target: "work",
+        externalId: "abc-123",
+        type: "manga"
+      }
+    };
+    const actor = createUser({ role: "admin", permissions: ["media:write"] });
+    const provider: MediaSyncProviderPort = {
+      supports: vi.fn().mockReturnValue(false),
+      fetch: vi.fn()
+    };
+    const repository: MediaSyncRepositoryPort = {
+      upsertMany: vi.fn()
+    };
+    const useCase = new SyncMediaUseCase(
+      [provider],
+      repository,
+      new AuthorizationService()
+    );
+
+    await expect(useCase.execute(request, actor)).rejects.toThrow(
+      "No media sync provider registered for mangadex"
+    );
+  });
 });
 
 function createUser(overrides: Partial<User>): User {

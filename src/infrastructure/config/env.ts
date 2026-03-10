@@ -8,6 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().min(1).default("1h"),
+  MEDIA_SYNC_TMDB_FEED_CRON: z.string().min(1).optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

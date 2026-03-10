@@ -130,6 +130,40 @@ describe("Auth routes integration (Express + Postgres)", () => {
     expect(response.body.data.user.email).toBe("user@example.com");
   });
 
+  it("loads role and permissions defaults from Postgres", async () => {
+    const registerResponse = await request(ctx!.app)
+      .post("/auth/register")
+      .send({
+        email: "admin-check@example.com",
+        password: "StrongPass123!",
+        verifyPassword: "StrongPass123!",
+      })
+      .expect(201);
+
+    const token = registerResponse.body.data.accessToken as string;
+
+    const meResponse = await request(ctx!.app)
+      .get("/auth/me")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body.data.user).toMatchObject({
+      email: "admin-check@example.com",
+      role: "user",
+    });
+
+    const result = await ctx!.pgPool.query<{
+      role: string;
+      permissions: string[];
+    }>("SELECT role, permissions FROM users WHERE email = $1", [
+      "admin-check@example.com",
+    ]);
+
+    expect(result.rowCount).toBe(1);
+    expect(result.rows[0]?.role).toBe("user");
+    expect(result.rows[0]?.permissions).toEqual([]);
+  });
+
   it("returns 401 when /auth/me is called without token", async () => {
     const response = await request(ctx!.app).get("/auth/me");
 

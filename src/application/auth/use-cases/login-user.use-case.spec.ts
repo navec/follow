@@ -56,6 +56,8 @@ describe("LoginUserUseCase", () => {
       id: "user-1",
       email: "user@example.com",
       passwordHash: "hash:StrongPass123!",
+      role: "user",
+      permissions: [],
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
       updatedAt: new Date("2026-02-22T00:00:00.000Z")
     });
@@ -76,6 +78,8 @@ describe("LoginUserUseCase", () => {
       id: "user-1",
       email: "user@example.com",
       passwordHash: "hash:actual",
+      role: "user",
+      permissions: [],
       createdAt: new Date("2026-02-22T00:00:00.000Z"),
       updatedAt: new Date("2026-02-22T00:00:00.000Z")
     });

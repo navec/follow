@@ -9,3 +9,4 @@ coverage/
 dist/
 docs/
 .make/deps.stamp
+.worktrees/

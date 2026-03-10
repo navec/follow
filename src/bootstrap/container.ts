@@ -9,6 +9,7 @@ import type { AppEnv } from "@infrastructure/config/index.js";
 import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
 import { PgMediaSyncRepository } from "@infrastructure/persistence/postgres/repositories/pg-media-sync.repository.js";
 import { PgUserRepository } from "@infrastructure/persistence/postgres/repositories/pg-user.repository.js";
+import { MangadexMediaSyncProvider } from "@infrastructure/providers/mangadex/mangadex-media-sync.provider.js";
 import { TmdbMediaSyncProvider } from "@infrastructure/providers/tmdb/tmdb-media-sync.provider.js";
 import { Argon2PasswordHasher } from "@infrastructure/security/argon2-password-hasher.js";
 import { JwtTokenService } from "@infrastructure/security/jwt-token-service.js";
@@ -31,12 +32,25 @@ export function createContainer(env: AppEnv) {
       };
     }
   });
+  const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
+    async getWorkOrFeed(request) {
+      if (request.params.target !== "work") {
+        throw new Error("Unsupported MangaDex sync target");
+      }
+
+      return {
+        data: {
+          id: String(request.params.externalId)
+        }
+      };
+    }
+  });
 
   const registerUserUseCase = new RegisterUserUseCase(userRepository, passwordHasher, tokenService);
   const loginUserUseCase = new LoginUserUseCase(userRepository, passwordHasher, tokenService);
   const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
   const syncMediaUseCase = new SyncMediaUseCase(
-    [tmdbMediaSyncProvider],
+    [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     mediaSyncRepository,
     authorizationService
   );

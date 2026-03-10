@@ -38,6 +38,7 @@ Variables clés:
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN`
 - `PORT`
+- `MEDIA_SYNC_TMDB_FEED_CRON` (optionnel, expression cron pour lancer un import feed TMDB)
 
 ## Base Postgres locale (Docker Compose)
 
@@ -175,6 +176,42 @@ Note: l'image utilise un `Dockerfile` multi-stage (`node:24-bookworm-slim`) et e
 - `POST /auth/login`
 - `GET /auth/me` (Bearer token)
 
+## Endpoint media sync
+
+- `POST /media/sync`
+
+Payloads supportés actuellement :
+
+```json
+{
+  "provider": "tmdb",
+  "params": {
+    "target": "work",
+    "externalId": 123,
+    "type": "movie"
+  }
+}
+```
+
+```json
+{
+  "provider": "mangadex",
+  "params": {
+    "target": "work",
+    "externalId": "uuid-or-id",
+    "type": "manga"
+  }
+}
+```
+
+Accès requis :
+
+- JWT valide
+- utilisateur avec `role=admin`
+- permission `media:write`
+
+Le cron utilise le même use case que le endpoint REST. Le premier job supporté est un feed TMDB `popular` déclenché par `MEDIA_SYNC_TMDB_FEED_CRON`.
+
 ## Migration Postgres (MVP)
 
 Migrations SQL (timestampées) dans `src/infrastructure/persistence/postgres/migrations/`.
@@ -201,6 +238,13 @@ Les tests d'intégration :
 - appliquent les migrations `up` sur la DB de test (une seule fois)
 - utilisent les vrais adaptateurs Postgres / argon2 / JWT
 - truncatent `users` entre les tests
+
+Pour la slice media sync, une base de test dédiée peut être utile pour éviter de réutiliser un historique de migrations déjà corrompu, par exemple :
+
+```bash
+docker exec -it follow-postgres createdb -U postgres follow_media_sync_test
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/follow_media_sync_test npm run test:integration
+```
 
 ## CI GitHub Actions (PR draft vs ready)
 

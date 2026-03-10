@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 
+import type { User } from "@domain/auth/entities/user.js";
 import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
-import type { User } from "@domain/auth/entities/user.js";
 
 import { mediaSyncSchema } from "../validation/schemas/media-sync.schemas.js";
 import type { BodyValidator } from "../validation/validator.js";

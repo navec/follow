@@ -267,3 +267,18 @@ Deliver the feature in incremental slices:
 6. second provider after the first adapter path is stable
 
 This keeps the first shipped slice useful while reducing integration risk.
+
+## Implementation Status Snapshot
+
+Current implementation status in the branch:
+
+- `POST /media/sync` is wired with JWT auth, DB-backed user loading, and `admin` + `media:write` enforcement
+- the first scheduler path is wired through `MEDIA_SYNC_TMDB_FEED_CRON`
+- TMDB and MangaDex targeted work imports are both mapped into the normalized aggregate
+- the Postgres sync repository currently persists the minimal identity path `sources` + `works` + `source_works`
+
+Still intentionally deferred:
+
+- real HTTP clients for provider APIs
+- feed support beyond the initial TMDB scheduler path
+- localized fields, contributors, episodes, and images upsert

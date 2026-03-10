@@ -1,11 +1,11 @@
+import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createContainer } from "@src/bootstrap/container.js";
+import { AuthorizationService } from "@application/auth/services/authorization.service.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
-import pino from "pino";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
 

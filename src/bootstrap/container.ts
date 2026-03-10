@@ -1,9 +1,9 @@
 import type { SignOptions } from "jsonwebtoken";
 
+import { AuthorizationService } from "@application/auth/services/authorization.service.js";
 import { GetCurrentUserUseCase } from "@application/auth/use-cases/get-current-user.use-case.js";
 import { LoginUserUseCase } from "@application/auth/use-cases/login-user.use-case.js";
 import { RegisterUserUseCase } from "@application/auth/use-cases/register-user.use-case.js";
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
 import { SyncMediaUseCase } from "@application/media/use-cases/sync-media.use-case.js";
 import type { AppEnv } from "@infrastructure/config/index.js";
 import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
@@ -25,7 +25,10 @@ export function createContainer(env: AppEnv) {
     expiresIn: env.JWT_EXPIRES_IN as Exclude<SignOptions["expiresIn"], undefined>
   });
   const tmdbMediaSyncProvider = new TmdbMediaSyncProvider({
-    async getWork(request) {
+    async getWork(request: {
+      provider: "tmdb";
+      params: { target: "work"; externalId: number | string; type: string };
+    }) {
       return {
         id: Number(request.params.externalId),
         media_type: request.params.type
@@ -33,11 +36,10 @@ export function createContainer(env: AppEnv) {
     }
   });
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
-    async getWorkOrFeed(request) {
-      if (request.params.target !== "work") {
-        throw new Error("Unsupported MangaDex sync target");
-      }
-
+    async getWorkOrFeed(request: {
+      provider: "mangadex";
+      params: { target: "work"; externalId: number | string; type: string };
+    }) {
       return {
         data: {
           id: String(request.params.externalId)

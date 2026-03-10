@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 
 import "dotenv/config";
+
 import cron from "node-cron";
 
 import { loadEnv } from "@infrastructure/config/index.js";

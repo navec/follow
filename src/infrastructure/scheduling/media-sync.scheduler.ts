@@ -1,6 +1,6 @@
+import type { User } from "@domain/auth/entities/user.js";
 import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
-import type { User } from "@domain/auth/entities/user.js";
 
 type ScheduleFn = (expression: string, handler: () => void | Promise<void>) => {
   stop?: () => void;
@@ -11,7 +11,7 @@ type SyncMediaUseCasePort = {
 };
 
 type SchedulerEnv = {
-  MEDIA_SYNC_TMDB_FEED_CRON?: string;
+  MEDIA_SYNC_TMDB_FEED_CRON?: string | undefined;
 };
 
 const systemActor: User = {

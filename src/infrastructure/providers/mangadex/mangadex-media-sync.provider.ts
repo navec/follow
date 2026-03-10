@@ -2,6 +2,15 @@ import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { NormalizedWorkAggregate } from "@application/media/models/normalized-work-aggregate.js";
 import type { MediaSyncProviderPort } from "@application/media/ports/out/media-sync-provider.port.js";
 
+type MangadexWorkSyncRequest = {
+  provider: "mangadex";
+  params: {
+    target: "work";
+    externalId: number | string;
+    type: string;
+  };
+};
+
 interface MangadexPayload {
   data: {
     id: string;
@@ -12,7 +21,7 @@ interface MangadexPayload {
 }
 
 interface MangadexClient {
-  getWorkOrFeed(request: SyncRequest): Promise<MangadexPayload>;
+  getWorkOrFeed(request: MangadexWorkSyncRequest): Promise<MangadexPayload>;
 }
 
 export class MangadexMediaSyncProvider implements MediaSyncProviderPort {
@@ -27,8 +36,14 @@ export class MangadexMediaSyncProvider implements MediaSyncProviderPort {
       throw new Error("MangaDex provider currently supports only targeted work sync");
     }
 
-    const payload = await this.client.getWorkOrFeed(request);
+    const payload = await this.client.getWorkOrFeed(request as MangadexWorkSyncRequest);
     const year = payload.data.attributes?.year;
+    const work: NormalizedWorkAggregate["work"] = {
+      type: request.params.type
+    };
+    if (year) {
+      work.releaseDate = `${year}-01-01`;
+    }
 
     return [
       {
@@ -36,10 +51,7 @@ export class MangadexMediaSyncProvider implements MediaSyncProviderPort {
           provider: "mangadex",
           sourceValue: payload.data.id
         },
-        work: {
-          type: request.params.type,
-          releaseDate: year ? `${year}-01-01` : undefined
-        }
+        work
       }
     ];
   }

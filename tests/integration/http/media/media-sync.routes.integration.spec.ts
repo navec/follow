@@ -45,7 +45,7 @@ describe("Media sync routes integration", () => {
       { logger: pino({ enabled: false }) },
     );
     app = createHttpApp({
-      authApi: ctx.authApi,
+      auth: ctx.auth,
       logger: ctx.logger,
       mediaApi: syncMediaUseCase,
     });

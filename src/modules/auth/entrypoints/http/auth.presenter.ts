@@ -1,4 +1,7 @@
-import type { AuthenticatedIdentity, AuthResult } from "@auth";
+import type {
+  AuthenticatedIdentity,
+  AuthResult,
+} from "../../public/auth-api.js";
 
 export const authPresenter = {
   auth(data: AuthResult) {

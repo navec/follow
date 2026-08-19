@@ -1,0 +1,27 @@
+import type { HttpModuleDefinition } from "../../../../shared/http/contracts/http-module-definition.js";
+import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
+import type { AuthApi } from "../../public/auth-api.js";
+
+import { AuthController } from "./auth.controller.js";
+
+interface AuthHttpDependencies {
+  api: AuthApi;
+  bodyValidator: BodyValidator;
+}
+
+export function createAuthHttpDefinition({
+  api,
+  bodyValidator,
+}: AuthHttpDependencies): HttpModuleDefinition {
+  const controller = new AuthController({ authApi: api, bodyValidator });
+
+  return {
+    id: "auth",
+    basePath: "/auth",
+    routes: [
+      { method: "POST", path: "/register", access: "public", handler: controller.register },
+      { method: "POST", path: "/login", access: "public", handler: controller.login },
+      { method: "GET", path: "/me", access: "authenticated", handler: controller.me },
+    ],
+  };
+}

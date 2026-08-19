@@ -74,7 +74,7 @@ export default tseslint.config(
         default: "disallow",
         rules: [
           { from: "auth-public", allow: ["auth-public"] },
-          { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform"] },
+          { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform", "shared-http"] },
           { from: "media-public", allow: ["media-public"] },
           { from: "media-internal", allow: ["media-internal", "media-public", "platform"] },
           { from: "shared-http", allow: ["shared-http"] },

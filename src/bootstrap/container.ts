@@ -16,6 +16,7 @@ import { PgMediaSyncRepository } from "../modules/media/adapters/out/postgres/pg
 import { TmdbHttpClient } from "../modules/media/adapters/out/tmdb/tmdb-http.client.js";
 import { TmdbMediaSyncProvider } from "../modules/media/adapters/out/tmdb/tmdb-media-sync.provider.js";
 import { createMediaModule } from "../modules/media/media.module.js";
+import { ZodBodyValidator } from "../shared/http/validation/zod-validator.js";
 
 type SchedulerSchedule = ConstructorParameters<typeof MediaSyncScheduler>[2];
 
@@ -81,17 +82,20 @@ export function createContainer(
     },
   });
 
-  const authApi = createAuthModule({
+  const bodyValidator = new ZodBodyValidator();
+  const auth = createAuthModule({
     userRepository,
     passwordHasher,
     tokenService,
+    http: { bodyValidator },
   });
+  const authApi = auth.api;
   const mediaApi = createMediaModule({
     providers: [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     repository: mediaSyncRepository,
   });
   const logger = options.logger ?? createLogger(env);
-  const app = createHttpApp({ authApi, mediaApi, logger });
+  const app = createHttpApp({ auth, mediaApi, logger });
   const scheduler = new MediaSyncScheduler(
     mediaApi,
     env,
@@ -100,6 +104,7 @@ export function createContainer(
 
   return {
     pgPool,
+    auth,
     authApi,
     mediaApi,
     app,

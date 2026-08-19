@@ -60,6 +60,8 @@ export default tseslint.config(
         { type: "auth-internal", pattern: "src/modules/auth/**/*.ts", mode: "full" },
         { type: "media-public", pattern: "src/modules/media/public/**/*.ts", mode: "full" },
         { type: "media-internal", pattern: "src/modules/media/**/*.ts", mode: "full" },
+        { type: "shared-http", pattern: "src/shared/http/**/*.ts", mode: "full" },
+        { type: "shared-scheduling", pattern: "src/shared/scheduling/**/*.ts", mode: "full" },
         { type: "entrypoint", pattern: "src/entrypoints/**/*.ts", mode: "full" },
         { type: "platform", pattern: "src/platform/**/*.ts", mode: "full" },
         { type: "bootstrap", pattern: "src/bootstrap/**/*.ts", mode: "full" }
@@ -75,9 +77,11 @@ export default tseslint.config(
           { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform"] },
           { from: "media-public", allow: ["media-public"] },
           { from: "media-internal", allow: ["media-internal", "media-public", "platform"] },
-          { from: "entrypoint", allow: ["entrypoint", "auth-public", "media-public", "platform"] },
+          { from: "shared-http", allow: ["shared-http"] },
+          { from: "shared-scheduling", allow: ["shared-scheduling"] },
+          { from: "entrypoint", allow: ["entrypoint", "auth-public", "media-public", "platform", "shared-http", "shared-scheduling"] },
           { from: "platform", allow: ["platform"] },
-          { from: "bootstrap", allow: ["bootstrap", "entrypoint", "auth-public", "media-public", "platform", "auth-internal", "media-internal"] }
+          { from: "bootstrap", allow: ["bootstrap", "entrypoint", "auth-public", "media-public", "platform", "auth-internal", "media-internal", "shared-http", "shared-scheduling"] }
         ]
       }]
     }

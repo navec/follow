@@ -45,7 +45,7 @@ jobs:
         run: docker build -t follow-api:pr-${{ github.event.pull_request.number }} .
 
   unit-tests:
-    name: Unit Tests
+    name: Unit + Adapter Tests
     if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     steps:
@@ -56,6 +56,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:unit
+      - run: npm run test:adapters
 
   integration-tests:
     name: Integration Tests

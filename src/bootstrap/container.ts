@@ -1,40 +1,73 @@
 import type { SignOptions } from "jsonwebtoken";
+import type { Logger } from "pino";
 
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
-import { GetCurrentUserUseCase } from "@application/auth/use-cases/get-current-user.use-case.js";
-import { LoginUserUseCase } from "@application/auth/use-cases/login-user.use-case.js";
-import { RegisterUserUseCase } from "@application/auth/use-cases/register-user.use-case.js";
-import { SyncMediaUseCase } from "@application/media/use-cases/sync-media.use-case.js";
-import type { AppEnv } from "@infrastructure/config/index.js";
-import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
-import { PgMediaSyncRepository } from "@infrastructure/persistence/postgres/repositories/pg-media-sync.repository.js";
-import { PgUserRepository } from "@infrastructure/persistence/postgres/repositories/pg-user.repository.js";
-import { MangadexMediaSyncProvider } from "@infrastructure/providers/mangadex/mangadex-media-sync.provider.js";
-import { TmdbMediaSyncProvider } from "@infrastructure/providers/tmdb/tmdb-media-sync.provider.js";
-import { Argon2PasswordHasher } from "@infrastructure/security/argon2-password-hasher.js";
-import { JwtTokenService } from "@infrastructure/security/jwt-token-service.js";
+import type { AppEnv } from "@platform/config/index.js";
+import { createPgPool } from "@platform/database/pg-client.js";
+import { createLogger } from "@platform/logging/logger.js";
 
-export function createContainer(env: AppEnv) {
+import { createHttpApp } from "../entrypoints/http/app.js";
+import { MediaSyncScheduler } from "../entrypoints/scheduler/media-sync.scheduler.js";
+import { PgUserRepository } from "../modules/auth/adapters/out/postgres/pg-user.repository.js";
+import { Argon2PasswordHasher } from "../modules/auth/adapters/out/security/argon2-password-hasher.js";
+import { JwtTokenService } from "../modules/auth/adapters/out/security/jwt-token-service.js";
+import { createAuthModule } from "../modules/auth/auth.module.js";
+import { MangadexMediaSyncProvider } from "../modules/media/adapters/out/mangadex/mangadex-media-sync.provider.js";
+import { PgMediaSyncRepository } from "../modules/media/adapters/out/postgres/pg-media-sync.repository.js";
+import { TmdbHttpClient } from "../modules/media/adapters/out/tmdb/tmdb-http.client.js";
+import { TmdbMediaSyncProvider } from "../modules/media/adapters/out/tmdb/tmdb-media-sync.provider.js";
+import { createMediaModule } from "../modules/media/media.module.js";
+
+type SchedulerSchedule = ConstructorParameters<typeof MediaSyncScheduler>[2];
+
+const disabledSchedule: SchedulerSchedule = () => ({});
+
+interface ContainerOptions {
+  logger?: Logger;
+  schedule?: SchedulerSchedule;
+}
+
+export function createContainer(
+  env: AppEnv,
+  options: ContainerOptions = {},
+) {
   const pgPool = createPgPool(env.DATABASE_URL);
   const userRepository = new PgUserRepository(pgPool);
   const mediaSyncRepository = new PgMediaSyncRepository(pgPool);
   const passwordHasher = new Argon2PasswordHasher();
-  const authorizationService = new AuthorizationService();
   const tokenService = new JwtTokenService({
     secret: env.JWT_SECRET,
-    expiresIn: env.JWT_EXPIRES_IN as Exclude<SignOptions["expiresIn"], undefined>
+    expiresIn: env.JWT_EXPIRES_IN as Exclude<
+      SignOptions["expiresIn"],
+      undefined
+    >,
   });
-  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider({
-    async getWork(request: {
-      provider: "tmdb";
-      params: { target: "work"; externalId: number | string; type: string };
-    }) {
-      return {
-        id: Number(request.params.externalId),
-        media_type: request.params.type
+
+  const tmdbClient = env.TMDB_READ_ACCESS_TOKEN
+    ? new TmdbHttpClient({
+        baseUrl: env.TMDB_BASE_URL,
+        readAccessToken: env.TMDB_READ_ACCESS_TOKEN,
+        defaultLanguage: env.TMDB_DEFAULT_LANGUAGE,
+        defaultRegion: env.TMDB_DEFAULT_REGION,
+        requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+      })
+    : {
+        async getWork(request: {
+          provider: "tmdb";
+          params: { target: "work"; externalId: number | string; type: string };
+        }) {
+          return {
+            id: Number(request.params.externalId),
+            media_type: request.params.type,
+          };
+        },
+        async getPopularMovies() {
+          return { results: [] };
+        },
+        async getPopularTv() {
+          return { results: [] };
+        },
       };
-    }
-  });
+  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient);
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
     async getWorkOrFeed(request: {
       provider: "mangadex";
@@ -42,32 +75,36 @@ export function createContainer(env: AppEnv) {
     }) {
       return {
         data: {
-          id: String(request.params.externalId)
-        }
+          id: String(request.params.externalId),
+        },
       };
-    }
+    },
   });
 
-  const registerUserUseCase = new RegisterUserUseCase(userRepository, passwordHasher, tokenService);
-  const loginUserUseCase = new LoginUserUseCase(userRepository, passwordHasher, tokenService);
-  const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
-  const syncMediaUseCase = new SyncMediaUseCase(
-    [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
-    mediaSyncRepository,
-    authorizationService
+  const authApi = createAuthModule({
+    userRepository,
+    passwordHasher,
+    tokenService,
+  });
+  const mediaApi = createMediaModule({
+    providers: [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
+    repository: mediaSyncRepository,
+  });
+  const logger = options.logger ?? createLogger(env);
+  const app = createHttpApp({ authApi, mediaApi, logger });
+  const scheduler = new MediaSyncScheduler(
+    mediaApi,
+    env,
+    options.schedule ?? disabledSchedule,
   );
 
   return {
     pgPool,
-    userRepository,
-    mediaSyncRepository,
-    passwordHasher,
-    authorizationService,
-    tokenService,
-    registerUserUseCase,
-    loginUserUseCase,
-    getCurrentUserUseCase,
-    syncMediaUseCase
+    authApi,
+    mediaApi,
+    app,
+    logger,
+    scheduler,
   };
 }
 

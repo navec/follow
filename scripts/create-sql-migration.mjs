@@ -2,8 +2,6 @@ import { mkdir, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
-const migrationsDir = path.resolve('src/infrastructure/persistence/postgres/migrations');
-
 function timestampUtcCompact(date = new Date()) {
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -35,9 +33,15 @@ async function ensureDoesNotExist(filePath) {
 }
 
 async function main() {
-  const rawName = process.argv.slice(2).join(' ');
-  if (!rawName) {
-    console.error('Usage: npm run db:migrate:new -- <migration_name>');
+  const [moduleName, ...nameParts] = process.argv.slice(2);
+  const rawName = nameParts.join(' ');
+  if (!moduleName || !rawName) {
+    console.error('Usage: npm run db:migrate:new -- <module> <migration_name>');
+    process.exit(1);
+  }
+
+  if (!/^[a-z][a-z0-9-]*$/.test(moduleName)) {
+    console.error('Invalid module name. Use lowercase letters, numbers, and hyphens.');
     process.exit(1);
   }
 
@@ -47,6 +51,11 @@ async function main() {
     process.exit(1);
   }
 
+  const migrationsDir = path.resolve(
+    'src/modules',
+    moduleName,
+    'adapters/out/postgres/migrations',
+  );
   const stamp = timestampUtcCompact();
   const base = `${stamp}_${name}`;
   const upSqlPath = path.join(migrationsDir, `${base}.up.sql`);

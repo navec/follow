@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFile as execFileCb } from 'node:child_process';
 import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 
 const execFile = promisify(execFileCb);
 const MIN_COVERAGE = Number(process.env.MIN_NEW_CODE_COVERAGE ?? '90');
@@ -30,11 +31,11 @@ async function gitDiffChangedFiles() {
     .map(normalizePath);
 }
 
-function selectCoveredFiles(changedFiles) {
+export function selectCoveredFiles(changedFiles) {
   return changedFiles.filter((file) => {
     if (!file.endsWith('.ts')) return false;
     if (file.endsWith('.spec.ts')) return false;
-    return file.startsWith('src/domain/') || file.startsWith('src/application/');
+    return /^src\/modules\/[^/]+\/(domain|application)\//.test(file);
   });
 }
 
@@ -57,7 +58,7 @@ async function main() {
   const targetFiles = selectCoveredFiles(changedFiles);
 
   if (targetFiles.length === 0) {
-    console.log('No changed files in src/domain or src/application. Skipping coverage gate.');
+    console.log('No changed module domain or application files. Skipping coverage gate.');
     return;
   }
 
@@ -89,7 +90,12 @@ async function main() {
   console.log('\nCoverage gate passed.');
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+const isDirectExecution =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectExecution) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

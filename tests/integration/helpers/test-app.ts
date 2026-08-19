@@ -2,9 +2,8 @@ import type { Express } from "express";
 import type { Pool } from "pg";
 import pino from "pino";
 
-import { createContainer } from "@src/bootstrap/container.js";
-import type { AppEnv } from "@infrastructure/config/index.js";
-import { createHttpApp } from "@infrastructure/http/express/app.js";
+import type { AppEnv } from "@platform/config/index.js";
+import { createContainer } from "@bootstrap/container.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";
 
@@ -19,24 +18,23 @@ function createTestEnv(): AppEnv {
     PORT: 0,
     DATABASE_URL: getTestDatabaseUrl(),
     JWT_SECRET: "integration-test-secret",
-    JWT_EXPIRES_IN: "1h"
+    JWT_EXPIRES_IN: "1h",
+    TMDB_BASE_URL: "https://api.themoviedb.org/3",
+    TMDB_DEFAULT_LANGUAGE: "fr-FR",
+    TMDB_DEFAULT_REGION: "FR",
+    TMDB_REQUEST_TIMEOUT_MS: 5000,
   };
 }
 
 export async function createIntegrationTestContext(): Promise<IntegrationTestContext> {
   await migrateTestDbUpOnce();
 
-  const container = createContainer(createTestEnv());
-  const app = createHttpApp({
-    registerUserUseCase: container.registerUserUseCase,
-    loginUserUseCase: container.loginUserUseCase,
-    getCurrentUserUseCase: container.getCurrentUserUseCase,
-    tokenService: container.tokenService,
-    logger: pino({ enabled: false })
+  const container = createContainer(createTestEnv(), {
+    logger: pino({ enabled: false }),
   });
 
   return {
-    app,
+    app: container.app,
     pgPool: container.pgPool
   };
 }

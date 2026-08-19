@@ -1,3 +1,4 @@
+import { glob } from "node:fs/promises";
 import path from "node:path";
 
 import "dotenv/config";
@@ -5,13 +6,22 @@ import "dotenv/config";
 import { runner } from "node-pg-migrate";
 import type { Pool } from "pg";
 
-const migrationsDir = path.resolve(
+const migrationsGlob = path.resolve(
   process.cwd(),
-  "src/infrastructure/persistence/postgres/migrations/*.up.js",
+  "src/modules/*/adapters/out/postgres/migrations/*.up.js",
 );
 
 let migrationsApplied = false;
 let migrationPromise: Promise<void> | null = null;
+
+export async function discoverMigrationPaths(): Promise<string[]> {
+  const paths: string[] = [];
+  for await (const migrationPath of glob(migrationsGlob)) {
+    paths.push(migrationPath);
+  }
+
+  return paths.sort();
+}
 
 function sleep(delayMs: number): Promise<void> {
   return new Promise((resolve) => {
@@ -76,7 +86,7 @@ export async function migrateTestDbUpOnce(): Promise<void> {
     migrationPromise = runMigrationsWithRetry(async () => {
       await runner({
         databaseUrl: getTestDatabaseUrl(),
-        dir: migrationsDir,
+        dir: migrationsGlob,
         useGlob: true,
         direction: "up",
         migrationsTable: "pgmigrations",

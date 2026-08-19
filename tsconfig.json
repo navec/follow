@@ -5,10 +5,11 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"],
-      "@domain/*": ["src/domain/*"],
-      "@application/*": ["src/application/*"],
-      "@infrastructure/*": ["src/infrastructure/*"]
+      "@auth": ["src/modules/auth/public/index.ts"],
+      "@media": ["src/modules/media/public/index.ts"],
+      "@platform/*": ["src/platform/*"],
+      "@entrypoints/*": ["src/entrypoints/*"],
+      "@bootstrap/*": ["src/bootstrap/*"]
     },
     "lib": ["ES2022"],
     "strict": true,
@@ -23,6 +24,6 @@
     "sourceMap": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

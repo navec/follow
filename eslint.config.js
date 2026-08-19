@@ -37,20 +37,12 @@ export default tseslint.config(
           ["^node:"],
           ["^\\u0000"],
           ["^@?\\w"],
-          ["^@src/", "^@domain/", "^@application/", "^@infrastructure/"],
+          ["^@auth", "^@media", "^@platform/", "^@entrypoints/", "^@bootstrap/"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$"],
           ["^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"]
         ]
       }],
-      "simple-import-sort/exports": "error",
-      "no-restricted-imports": ["error", {
-        "patterns": [
-          {
-            "group": ["../../*", "../../../*", "../../../../*", "../../../../../*", "../../../../../../*"],
-            "message": "Use aliases (@domain/@application/@infrastructure/@src) instead of deep relative imports."
-          }
-        ]
-      }]
+      "simple-import-sort/exports": "error"
     }
   },
   {
@@ -64,10 +56,12 @@ export default tseslint.config(
         }
       },
       "boundaries/elements": [
-        { type: "shared", pattern: "src/shared/**/*.ts", mode: "full" },
-        { type: "domain", pattern: "src/domain/**/*.ts", mode: "full" },
-        { type: "application", pattern: "src/application/**/*.ts", mode: "full" },
-        { type: "infrastructure", pattern: "src/infrastructure/**/*.ts", mode: "full" },
+        { type: "auth-public", pattern: "src/modules/auth/public/**/*.ts", mode: "full" },
+        { type: "auth-internal", pattern: "src/modules/auth/**/*.ts", mode: "full" },
+        { type: "media-public", pattern: "src/modules/media/public/**/*.ts", mode: "full" },
+        { type: "media-internal", pattern: "src/modules/media/**/*.ts", mode: "full" },
+        { type: "entrypoint", pattern: "src/entrypoints/**/*.ts", mode: "full" },
+        { type: "platform", pattern: "src/platform/**/*.ts", mode: "full" },
         { type: "bootstrap", pattern: "src/bootstrap/**/*.ts", mode: "full" }
       ]
     },
@@ -77,11 +71,13 @@ export default tseslint.config(
       "boundaries/element-types": ["error", {
         default: "disallow",
         rules: [
-          { from: "shared", allow: ["shared"] },
-          { from: "domain", allow: ["domain", "shared"] },
-          { from: "application", allow: ["application", "domain", "shared"] },
-          { from: "infrastructure", allow: ["infrastructure", "application", "domain", "shared"] },
-          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "application", "domain", "shared"] }
+          { from: "auth-public", allow: ["auth-public"] },
+          { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform"] },
+          { from: "media-public", allow: ["media-public"] },
+          { from: "media-internal", allow: ["media-internal", "media-public", "platform"] },
+          { from: "entrypoint", allow: ["entrypoint", "auth-public", "media-public", "platform"] },
+          { from: "platform", allow: ["platform"] },
+          { from: "bootstrap", allow: ["bootstrap", "entrypoint", "auth-public", "media-public", "platform", "auth-internal", "media-internal"] }
         ]
       }]
     }

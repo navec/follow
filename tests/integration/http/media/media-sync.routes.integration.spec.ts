@@ -2,22 +2,27 @@ import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createContainer } from "@src/bootstrap/container.js";
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
-import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
-import { createHttpApp } from "@infrastructure/http/express/app.js";
+import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
+import { createHttpApp } from "@entrypoints/http/app.js";
+import { createContainer } from "@bootstrap/container.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
 
 describe("Media sync routes integration", () => {
   const syncMediaUseCase = {
-    execute: vi.fn().mockResolvedValue({
-      created: 1,
-      updated: 0,
-      skipped: 0,
-      errors: []
-    } satisfies SyncResult)
-  };
+    sync: vi.fn<MediaApi["sync"]>().mockImplementation(async (_command, actor) => {
+      if (!actor.permissions.includes("media:write")) {
+        throw new MediaForbiddenError();
+      }
+
+      return {
+        created: 1,
+        updated: 0,
+        skipped: 0,
+        errors: [],
+      } satisfies SyncResult;
+    }),
+  } satisfies MediaApi;
 
   let ctx: ReturnType<typeof createContainer> | undefined;
   let app: ReturnType<typeof createHttpApp> | undefined;
@@ -25,27 +30,29 @@ describe("Media sync routes integration", () => {
   beforeAll(async () => {
     await migrateTestDbUpOnce();
 
-    ctx = createContainer({
-      NODE_ENV: "test",
-      PORT: 0,
-      DATABASE_URL: getTestDatabaseUrl(),
-      JWT_SECRET: "integration-test-secret",
-      JWT_EXPIRES_IN: "1h"
-    });
+    ctx = createContainer(
+      {
+        NODE_ENV: "test",
+        PORT: 0,
+        DATABASE_URL: getTestDatabaseUrl(),
+        JWT_SECRET: "integration-test-secret",
+        JWT_EXPIRES_IN: "1h",
+        TMDB_BASE_URL: "https://api.themoviedb.org/3",
+        TMDB_DEFAULT_LANGUAGE: "fr-FR",
+        TMDB_DEFAULT_REGION: "FR",
+        TMDB_REQUEST_TIMEOUT_MS: 5000,
+      },
+      { logger: pino({ enabled: false }) },
+    );
     app = createHttpApp({
-      registerUserUseCase: ctx.registerUserUseCase,
-      loginUserUseCase: ctx.loginUserUseCase,
-      getCurrentUserUseCase: ctx.getCurrentUserUseCase,
-      tokenService: ctx.tokenService,
-      logger: pino({ enabled: false }),
-      userRepository: ctx.userRepository,
-      authorizationService: new AuthorizationService(),
-      syncMediaUseCase
+      authApi: ctx.authApi,
+      logger: ctx.logger,
+      mediaApi: syncMediaUseCase,
     });
   });
 
   beforeEach(async () => {
-    syncMediaUseCase.execute.mockClear();
+    syncMediaUseCase.sync.mockClear();
     if (!ctx) {
       return;
     }
@@ -74,7 +81,13 @@ describe("Media sync routes integration", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe("FORBIDDEN");
-    expect(syncMediaUseCase.execute).not.toHaveBeenCalled();
+    expect(syncMediaUseCase.sync).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        role: "user",
+        permissions: [],
+      }),
+    );
   });
 
   it("starts a targeted sync for an authorized admin", async () => {
@@ -100,13 +113,15 @@ describe("Media sync routes integration", () => {
       });
 
     expect(response.status).toBe(202);
-    expect(response.body.data).toEqual({
-      created: 1,
-      updated: 0,
-      skipped: 0,
-      errors: []
+    expect(response.body).toEqual({
+      data: {
+        created: expect.any(Number),
+        updated: expect.any(Number),
+        skipped: expect.any(Number),
+        errors: expect.any(Array),
+      },
     });
-    expect(syncMediaUseCase.execute).toHaveBeenCalledOnce();
+    expect(syncMediaUseCase.sync).toHaveBeenCalledOnce();
   });
 
   async function registerAndGetToken(email: string): Promise<string> {

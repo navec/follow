@@ -1,10 +1,10 @@
-import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
-import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
-import { MediaForbiddenError } from "@application/media/errors/media-errors.js";
-import type { MediaActor } from "@application/media/models/media-actor.js";
-import type { MediaSyncProviderPort } from "@application/media/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "@application/media/ports/out/media-sync-repository.port.js";
-import type { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
+import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
+import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
+import { MediaForbiddenError } from "@media-internal/application/errors/media-errors.js";
+import type { MediaActor } from "@media-internal/application/models/media-actor.js";
+import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";
+import type { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
 
 export class SyncMediaUseCase {
   constructor(

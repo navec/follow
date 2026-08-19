@@ -1,3 +1,4 @@
+import { MediaForbiddenError } from "@media-internal/application/errors/media-errors.js";
 import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
 
@@ -8,7 +9,6 @@ import {
   AuthInvalidCredentialsError,
   AuthUnauthorizedError,
 } from "@auth-internal/domain/errors/auth-errors.js";
-import { MediaForbiddenError } from "@application/media/errors/media-errors.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {

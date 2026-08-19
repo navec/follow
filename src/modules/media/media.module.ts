@@ -1,7 +1,7 @@
-import type { MediaSyncProviderPort } from "@application/media/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "@application/media/ports/out/media-sync-repository.port.js";
-import { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
-import { SyncMediaUseCase } from "@application/media/use-cases/sync-media.use-case.js";
+import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";
+import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
+import { SyncMediaUseCase } from "@media-internal/application/use-cases/sync-media.use-case.js";
 
 import type { MediaApi } from "./public/media-api.js";
 

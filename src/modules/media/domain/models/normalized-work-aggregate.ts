@@ -1,4 +1,4 @@
-import type { SyncProvider } from "@application/media/dto/sync-request.dto.js";
+import type { SyncProvider } from "@media-internal/application/dto/sync-request.dto.js";
 
 export interface NormalizedWorkAggregate {
   source: {

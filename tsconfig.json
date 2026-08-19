@@ -9,6 +9,7 @@
       "@auth": ["src/modules/auth/public/index.ts"],
       "@auth-internal/*": ["src/modules/auth/*"],
       "@media": ["src/modules/media/public/index.ts"],
+      "@media-internal/*": ["src/modules/media/*"],
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
       "@infrastructure/*": ["src/infrastructure/*"]

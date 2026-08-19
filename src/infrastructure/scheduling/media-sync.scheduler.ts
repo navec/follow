@@ -1,6 +1,6 @@
-import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
-import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
-import type { MediaActor } from "@application/media/models/media-actor.js";
+import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
+import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
+import type { MediaActor } from "@media-internal/application/models/media-actor.js";
 
 type ScheduleFn = (expression: string, handler: () => void | Promise<void>) => {
   stop?: () => void;

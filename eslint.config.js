@@ -83,9 +83,9 @@ export default tseslint.config(
           { from: "domain", allow: ["domain", "shared"] },
           { from: "application", allow: ["application", "auth-module", "domain", "shared"] },
           { from: "auth-module", allow: ["auth-module", "shared"] },
-          { from: "media-module", allow: ["media-module", "application", "shared"] },
-          { from: "infrastructure", allow: ["infrastructure", "auth-module", "application", "domain", "shared"] },
-          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "auth-module", "application", "domain", "shared"] }
+          { from: "media-module", allow: ["media-module", "shared"] },
+          { from: "infrastructure", allow: ["infrastructure", "auth-module", "media-module", "application", "domain", "shared"] },
+          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "auth-module", "media-module", "application", "domain", "shared"] }
         ]
       }]
     }

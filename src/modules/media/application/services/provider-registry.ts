@@ -1,5 +1,5 @@
-import type { SyncProvider } from "@application/media/dto/sync-request.dto.js";
-import type { MediaSyncProviderPort } from "@application/media/ports/out/media-sync-provider.port.js";
+import type { SyncProvider } from "@media-internal/application/dto/sync-request.dto.js";
+import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
 
 export class MediaSyncProviderRegistry {
   constructor(private readonly providers: ReadonlyArray<MediaSyncProviderPort>) {}

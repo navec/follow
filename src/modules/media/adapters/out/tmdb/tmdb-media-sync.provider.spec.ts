@@ -1,6 +1,5 @@
+import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
 import { describe, expect, it, vi } from "vitest";
-
-import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 
 import { TmdbMediaSyncProvider } from "./tmdb-media-sync.provider.js";
 

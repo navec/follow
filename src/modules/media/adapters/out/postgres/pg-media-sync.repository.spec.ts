@@ -1,6 +1,5 @@
+import type { NormalizedWorkAggregate } from "@media-internal/domain/models/normalized-work-aggregate.js";
 import { describe, expect, it, vi } from "vitest";
-
-import type { NormalizedWorkAggregate } from "@application/media/models/normalized-work-aggregate.js";
 
 import { PgMediaSyncRepository } from "./pg-media-sync.repository.js";
 

@@ -6,7 +6,6 @@ import { createPgPool } from "@platform/database/pg-client.js";
 import { createLogger } from "@platform/logging/logger.js";
 
 import { createHttpApp } from "../entrypoints/http/app.js";
-import { MediaSyncScheduler } from "../entrypoints/scheduler/media-sync.scheduler.js";
 import { PgUserRepository } from "../modules/auth/adapters/out/postgres/pg-user.repository.js";
 import { Argon2PasswordHasher } from "../modules/auth/adapters/out/security/argon2-password-hasher.js";
 import { JwtTokenService } from "../modules/auth/adapters/out/security/jwt-token-service.js";
@@ -18,13 +17,8 @@ import { TmdbMediaSyncProvider } from "../modules/media/adapters/out/tmdb/tmdb-m
 import { createMediaModule } from "../modules/media/media.module.js";
 import { ZodBodyValidator } from "../shared/http/validation/zod-validator.js";
 
-type SchedulerSchedule = ConstructorParameters<typeof MediaSyncScheduler>[2];
-
-const disabledSchedule: SchedulerSchedule = () => ({});
-
 interface ContainerOptions {
   logger?: Logger;
-  schedule?: SchedulerSchedule;
 }
 
 export function createContainer(
@@ -90,26 +84,24 @@ export function createContainer(
     http: { bodyValidator },
   });
   const authApi = auth.api;
-  const mediaApi = createMediaModule({
+  const media = createMediaModule({
     providers: [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     repository: mediaSyncRepository,
+    http: { bodyValidator },
+    scheduler: { tmdbFeedCron: env.MEDIA_SYNC_TMDB_FEED_CRON },
   });
+  const mediaApi = media.api;
   const logger = options.logger ?? createLogger(env);
-  const app = createHttpApp({ auth, mediaApi, logger });
-  const scheduler = new MediaSyncScheduler(
-    mediaApi,
-    env,
-    options.schedule ?? disabledSchedule,
-  );
+  const app = createHttpApp({ auth, media, logger });
 
   return {
     pgPool,
     auth,
     authApi,
+    media,
     mediaApi,
     app,
     logger,
-    scheduler,
   };
 }
 

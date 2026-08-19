@@ -8,6 +8,6 @@ import type { HttpModuleDefinition } from "../../shared/http/contracts/http-modu
 
 export type CreateHttpApp = (deps: {
   auth: { api: AuthApi; http: HttpModuleDefinition };
-  mediaApi?: MediaApi;
+  media?: { api: MediaApi; http: HttpModuleDefinition };
   logger: Logger;
 }) => Express;

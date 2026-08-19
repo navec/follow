@@ -11,8 +11,10 @@ import { createContainer } from "./container.js";
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  const container = createContainer(env, { schedule: cron.schedule });
-  container.scheduler.start();
+  const container = createContainer(env);
+  container.media.scheduledJobs.forEach((job) => {
+    cron.schedule(job.expression, job.handler);
+  });
 
   const server = createServer(container.app);
 

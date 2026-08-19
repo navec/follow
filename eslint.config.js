@@ -76,7 +76,7 @@ export default tseslint.config(
           { from: "auth-public", allow: ["auth-public"] },
           { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform", "shared-http"] },
           { from: "media-public", allow: ["media-public"] },
-          { from: "media-internal", allow: ["media-internal", "media-public", "platform"] },
+          { from: "media-internal", allow: ["media-internal", "media-public", "platform", "shared-http", "shared-scheduling"] },
           { from: "shared-http", allow: ["shared-http"] },
           { from: "shared-scheduling", allow: ["shared-scheduling"] },
           { from: "entrypoint", allow: ["entrypoint", "auth-public", "media-public", "platform", "shared-http", "shared-scheduling"] },

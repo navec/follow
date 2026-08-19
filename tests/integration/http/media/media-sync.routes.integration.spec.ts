@@ -6,6 +6,8 @@ import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
 import { createHttpApp } from "@entrypoints/http/app.js";
 import { createContainer } from "@bootstrap/container.js";
 
+import { createMediaHttpDefinition } from "../../../../src/modules/media/entrypoints/http/media.routes.js";
+import { ZodBodyValidator } from "../../../../src/shared/http/validation/zod-validator.js";
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
 
 describe("Media sync routes integration", () => {
@@ -47,7 +49,13 @@ describe("Media sync routes integration", () => {
     app = createHttpApp({
       auth: ctx.auth,
       logger: ctx.logger,
-      mediaApi: syncMediaUseCase,
+      media: {
+        api: syncMediaUseCase,
+        http: createMediaHttpDefinition({
+          api: syncMediaUseCase,
+          bodyValidator: new ZodBodyValidator(),
+        }),
+      },
     });
   });
 

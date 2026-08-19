@@ -4,15 +4,11 @@ import { createErrorHandler } from "../../shared/http/error-handler.js";
 import { createAuthenticationMiddleware } from "../../shared/http/middleware/authentication.middleware.js";
 import { createRequestLoggerMiddleware } from "../../shared/http/middleware/request-logger.middleware.js";
 import { registerHttpModules } from "../../shared/http/route-registry.js";
-import { ZodBodyValidator } from "../../shared/http/validation/zod-validator.js";
 
-import { MediaSyncController } from "./controllers/media-sync.controller.js";
 import {
   ROOT_ROUTES,
   type RootRouteDefinition,
-  ROUTE_GROUPS,
 } from "./routes/endpoints.js";
-import { createMediaRouter } from "./routes/media.routes.js";
 import type { CreateHttpApp } from "./types.js";
 
 export const createHttpApp: CreateHttpApp = (deps) => {
@@ -23,16 +19,6 @@ export const createHttpApp: CreateHttpApp = (deps) => {
       res.status(200).json({ data: { status: "ok" } });
     },
   };
-  const mediaRouter = deps.mediaApi
-      ? createMediaRouter(
-          new MediaSyncController({
-            mediaApi: deps.mediaApi,
-            bodyValidator: new ZodBodyValidator(),
-          }),
-          deps.auth.api,
-        )
-      : null;
-
   app.use(express.json());
   app.use(createRequestLoggerMiddleware(deps.logger));
 
@@ -43,15 +29,9 @@ export const createHttpApp: CreateHttpApp = (deps) => {
 
   registerHttpModules(
     app,
-    [deps.auth.http],
+    [deps.auth.http, ...(deps.media ? [deps.media.http] : [])],
     createAuthenticationMiddleware((token) => deps.auth.api.authenticate(token)),
   );
-
-  ROUTE_GROUPS.filter((group) => group.id !== "root").forEach((group) => {
-    if (group.id === "media" && mediaRouter) {
-      app.use(group.basePath, mediaRouter);
-    }
-  });
 
   app.use(createErrorHandler(deps.logger));
 

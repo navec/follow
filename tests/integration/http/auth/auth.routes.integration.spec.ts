@@ -134,7 +134,7 @@ describe("Auth routes integration (Express + Postgres)", () => {
     const registerResponse = await request(ctx!.app)
       .post("/auth/register")
       .send({
-        email: "me-user@example.com",
+        email: "reader@example.com",
         password: "StrongPass123!",
         verifyPassword: "StrongPass123!",
       })
@@ -147,7 +147,15 @@ describe("Auth routes integration (Express + Postgres)", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.data.user.email).toBe("me-user@example.com");
+    expect(response.body).toEqual({
+      data: {
+        user: {
+          id: expect.any(String),
+          email: "reader@example.com",
+          role: "user",
+        },
+      },
+    });
   });
 
   it("loads role and permissions defaults from Postgres", async () => {

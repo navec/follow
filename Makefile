@@ -7,7 +7,7 @@ APP_CI := $(DC) run --rm -T -e GITHUB_BASE_SHA -e GITHUB_HEAD_SHA -e MIN_NEW_COD
 APP_CI_ROOT := $(DC) run --rm -T --user root app-ci
 DEPS_STAMP := .make/deps.stamp
 
-.PHONY: help up down logs ps shell install-hooks ci-draft ci-ready ci-ready-fast ci install deps fix-app-ci-perms lint typecheck build docker-build test-unit test-integration test-coverage db-test-create coverage-gate wait-db
+.PHONY: help up down logs ps shell install-hooks ci-draft ci-ready ci-ready-fast ci install deps fix-app-ci-perms lint typecheck build docker-build test-unit test-adapters test-integration test-coverage db-test-create coverage-gate wait-db
 
 help:
 	@echo "Targets:"
@@ -21,6 +21,7 @@ help:
 	@echo "  make ci-ready-fast   # ci-ready sans docker build (itération locale)"
 	@echo "  make ci              # alias of ci-ready"
 	@echo "  make db-test-create  # create follow_test database from TEST_DATABASE_URL"
+	@echo "  make test-adapters   # run adapter, Platform and entrypoint tests"
 	@echo "  make coverage-gate   # run changed-files coverage gate (requires GITHUB_* SHAs)"
 
 up:
@@ -95,6 +96,9 @@ db-test-create: deps
 test-unit: deps
 	$(APP_CI) npm run test:unit
 
+test-adapters: deps
+	$(APP_CI) npm run test:adapters
+
 test-integration: deps db-test-create
 	$(APP_CI) npm run test:integration
 
@@ -107,8 +111,8 @@ coverage-gate: deps db-test-create test-coverage
 ci-draft: deps lint typecheck build
 	$(MAKE) docker-build
 
-ci-ready-fast: deps lint typecheck build test-unit test-integration test-coverage
+ci-ready-fast: deps lint typecheck build test-unit test-adapters test-integration test-coverage
 
-ci-ready: ci-draft test-unit test-integration test-coverage
+ci-ready: ci-draft test-unit test-adapters test-integration test-coverage
 
 ci: ci-ready

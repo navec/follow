@@ -1,9 +1,9 @@
-# Hexagonal Express API (TypeScript)
+# Backend modulaire Express (TypeScript)
 
-Base backend API en TypeScript avec:
+Backend TypeScript organisé en modules métier isolés, avec :
 
 - Express
-- Architecture hexagonale (ports/adapters)
+- Architecture modulaire et hexagonale (ports/adapters)
 - Auth JWT (use-cases orientés auth)
 - Hash mot de passe avec `argon2` (salt géré par la lib)
 - Postgres (adaptateur de persistance)
@@ -38,7 +38,15 @@ Variables clés:
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN`
 - `PORT`
-- `MEDIA_SYNC_TMDB_FEED_CRON` (optionnel, expression cron pour lancer un import feed TMDB)
+- `TMDB_READ_ACCESS_TOKEN` (optionnel en local, requis pour appeler réellement TMDB)
+- `TMDB_BASE_URL` (défaut : `https://api.themoviedb.org/3`)
+- `TMDB_DEFAULT_LANGUAGE` et `TMDB_DEFAULT_REGION`
+- `TMDB_REQUEST_TIMEOUT_MS`
+- `MEDIA_SYNC_TMDB_FEED_CRON` (optionnel, expression cron pour un import feed TMDB)
+
+Sans `TMDB_READ_ACCESS_TOKEN`, l’application démarre sans appel réseau TMDB : les
+feeds sont vides et une synchronisation ciblée utilise uniquement l’identifiant et
+le type demandés. Ce mode dégradé est destiné au développement et aux tests.
 
 ## Base Postgres locale (Docker Compose)
 
@@ -82,10 +90,11 @@ npm run typecheck    # TypeScript strict
 npm run lint         # ESLint
 npm run lint:fix     # auto-fix + tri imports
 npm run test:unit    # tests unitaires co-localisés (domain/application)
+npm run test:adapters # adapters, Platform et entrypoints
 npm run test:coverage  # coverage sur unitaires + intégration
 npm run test:integration  # nécessite TEST_DATABASE_URL + DB follow_test
 npm run build        # build -> dist/
-npm run db:migrate:new -- create_users
+npm run db:migrate:new -- auth add_refresh_tokens
 npm run db:test:create   # crée la DB de test depuis TEST_DATABASE_URL
 npm run db:migrate:up
 npm run db:migrate:down
@@ -110,6 +119,7 @@ Exécuter un sous-ensemble :
 
 ```bash
 make test-unit
+make test-adapters
 make test-integration
 make test-coverage
 make db-test-create
@@ -164,11 +174,26 @@ Note: l'image utilise un `Dockerfile` multi-stage (`node:24-bookworm-slim`) et e
 
 ## Structure (résumé)
 
-- `src/domain` : règles métier / value objects / erreurs
-- `src/application` : use-cases + ports
-- `src/infrastructure` : Express, Zod, Postgres, JWT, argon2
-- `src/bootstrap` : composition root
+- `src/modules/auth` et `src/modules/media` : domaine, cas d’usage, ports,
+  adaptateurs et contrat public propres à chaque module
+- `src/entrypoints` : traduction des déclencheurs HTTP et scheduler vers les API
+  publiques des modules
+- `src/platform` : configuration, journalisation et ressources PostgreSQL
+- `src/bootstrap` : composition des modules et gestion du cycle de vie
 - `tests/integration` : tests d'intégration HTTP/DB
+
+Auth et Media ne s’importent jamais mutuellement. Un consommateur externe utilise
+uniquement `@auth` ou `@media`; les détails `domain`, `application` et `adapters`
+restent internes au module. ESLint vérifie ces frontières.
+
+### Flux HTTP protégé
+
+1. L’entrypoint HTTP valide le payload.
+2. Le middleware appelle `AuthApi.authenticate` avec le bearer token.
+3. L’identité publique Auth est stockée sur la requête.
+4. Pour Media, le contrôleur la convertit explicitement en `MediaActor`.
+5. `MediaApi` applique sa propre politique d’autorisation puis exécute la commande.
+6. L’entrypoint traduit le résultat ou l’erreur publique en réponse HTTP stable.
 
 ## Endpoints auth (MVP)
 
@@ -210,20 +235,26 @@ Accès requis :
 - utilisateur avec `role=admin`
 - permission `media:write`
 
-Le cron utilise le même use case que le endpoint REST. Le premier job supporté est un feed TMDB `popular` déclenché par `MEDIA_SYNC_TMDB_FEED_CRON`.
+Le scheduler utilise uniquement `MediaApi`, avec un `MediaActor` système dédié. Le
+premier job supporté est un feed TMDB `popular` déclenché par
+`MEDIA_SYNC_TMDB_FEED_CRON`.
 
 ## Migration Postgres (MVP)
 
-Migrations SQL (timestampées) dans `src/infrastructure/persistence/postgres/migrations/`.
+Chaque module possède ses migrations SQL timestampées dans
+`src/modules/<module>/adapters/out/postgres/migrations/`. Une commande unique
+découvre les migrations de tous les modules.
 
 Exemples :
 
-- `npm run db:migrate:new -- add_refresh_tokens`
+- `npm run db:migrate:new -- auth add_refresh_tokens`
+- `npm run db:migrate:new -- media add_media_status`
 - `npm run db:migrate:up`
 - `npm run db:migrate:down`
 - `npm run db:migrate:status`
 
-Migration initiale actuelle : `src/infrastructure/persistence/postgres/migrations/20260223T160000_create_users.up.sql`
+Exemple Auth :
+`src/modules/auth/adapters/out/postgres/migrations/20260223T160000_create_users.up.sql`.
 
 ## Tests d'intégration (Express + Postgres)
 
@@ -251,7 +282,9 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/follow_media_sync_
 Workflow PR :
 
 - Toujours (draft + ready) : `lint`, `typecheck + build`, `docker build`
-- Seulement PR ready (non-draft) : `test:unit`, `test:integration`, gate coverage nouveau code (>= 90% sur fichiers modifiés `src/domain` + `src/application`)
+- Seulement PR ready (non-draft) : `test:unit`, `test:adapters`,
+  `test:integration`, gate coverage nouveau code (>= 90% sur les fichiers
+  `domain` et `application` des modules modifiés)
 
 Reproduire le gate coverage localement (exemple) :
 

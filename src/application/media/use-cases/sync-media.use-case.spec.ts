@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
-import type { User } from "@auth-internal/domain/entities/user.js";
-import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
-
 import type { SyncRequest } from "../dto/sync-request.dto.js";
 import type { SyncResult } from "../dto/sync-result.dto.js";
+import { MediaForbiddenError } from "../errors/media-errors.js";
+import type { MediaActor } from "../models/media-actor.js";
 import type { MediaSyncProviderPort } from "../ports/out/media-sync-provider.port.js";
 import type { MediaSyncRepositoryPort } from "../ports/out/media-sync-repository.port.js";
+import { MediaAuthorizationPolicy } from "../services/media-authorization.policy.js";
 
 import { SyncMediaUseCase } from "./sync-media.use-case.js";
 
@@ -21,7 +20,7 @@ describe("SyncMediaUseCase", () => {
         type: "movie"
       }
     };
-    const actor: User = createUser({ role: "admin", permissions: ["media:write"] });
+    const actor = createActor({ role: "admin", permissions: ["media:write"] });
     const aggregates = [
       {
         source: {
@@ -48,7 +47,7 @@ describe("SyncMediaUseCase", () => {
     const useCase = new SyncMediaUseCase(
       [provider],
       repository,
-      new AuthorizationService()
+      new MediaAuthorizationPolicy()
     );
 
     await useCase.execute(request, actor);
@@ -65,7 +64,7 @@ describe("SyncMediaUseCase", () => {
         feed: "popular"
       }
     };
-    const actor = createUser({ role: "admin", permissions: [] });
+    const actor = createActor({ role: "admin", permissions: [] });
     const provider: MediaSyncProviderPort = {
       supports: vi.fn().mockReturnValue(true),
       fetch: vi.fn()
@@ -76,11 +75,11 @@ describe("SyncMediaUseCase", () => {
     const useCase = new SyncMediaUseCase(
       [provider],
       repository,
-      new AuthorizationService()
+      new MediaAuthorizationPolicy()
     );
 
     await expect(useCase.execute(request, actor)).rejects.toBeInstanceOf(
-      AuthUnauthorizedError
+      MediaForbiddenError
     );
   });
 
@@ -93,7 +92,7 @@ describe("SyncMediaUseCase", () => {
         type: "manga"
       }
     };
-    const actor = createUser({ role: "admin", permissions: ["media:write"] });
+    const actor = createActor({ role: "admin", permissions: ["media:write"] });
     const provider: MediaSyncProviderPort = {
       supports: vi.fn().mockReturnValue(false),
       fetch: vi.fn()
@@ -104,7 +103,7 @@ describe("SyncMediaUseCase", () => {
     const useCase = new SyncMediaUseCase(
       [provider],
       repository,
-      new AuthorizationService()
+      new MediaAuthorizationPolicy()
     );
 
     await expect(useCase.execute(request, actor)).rejects.toThrow(
@@ -113,15 +112,11 @@ describe("SyncMediaUseCase", () => {
   });
 });
 
-function createUser(overrides: Partial<User>): User {
+function createActor(overrides: Partial<MediaActor>): MediaActor {
   return {
     id: "user-1",
-    email: "admin@example.com",
-    passwordHash: "hash",
     role: "user",
     permissions: [],
-    createdAt: new Date("2026-03-10T00:00:00.000Z"),
-    updatedAt: new Date("2026-03-10T00:00:00.000Z"),
     ...overrides
   };
 }

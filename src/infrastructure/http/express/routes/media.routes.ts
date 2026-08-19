@@ -2,7 +2,7 @@ import { type RequestHandler, Router } from "express";
 
 import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "@auth-internal/application/ports/out/user-repository.port.js";
-import type { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
+import type { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
 
 import type { MediaSyncController } from "../controllers/media-sync.controller.js";
 import { createRequireAuth } from "../middleware/require-auth.js";
@@ -14,13 +14,13 @@ export function createMediaRouter(
   controller: MediaSyncController,
   tokenService: TokenServicePort,
   userRepository: UserRepositoryPort,
-  authorizationService: AuthorizationService
+  mediaAuthorizationPolicy: MediaAuthorizationPolicy
 ): Router {
   const router = Router();
   const requireAuth = createRequireAuth(tokenService);
   const requirePermission = createRequirePermission(
     userRepository,
-    authorizationService
+    mediaAuthorizationPolicy
   );
   const handlers: Record<MediaRouteDefinition["id"], RequestHandler> = {
     sync: controller.sync

@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 
 import type { UserRepositoryPort } from "@auth-internal/application/ports/out/user-repository.port.js";
-import type { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
 import type { User } from "@auth-internal/domain/entities/user.js";
 import { AuthForbiddenError, AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
+import type { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
 
 type AuthenticatedRequest = Request & {
   auth?: { sub: string; email: string };
@@ -12,7 +12,7 @@ type AuthenticatedRequest = Request & {
 
 export function createRequirePermission(
   userRepository: UserRepositoryPort,
-  authorizationService: AuthorizationService
+  mediaAuthorizationPolicy: MediaAuthorizationPolicy
 ) {
   return async (
     req: AuthenticatedRequest,
@@ -29,7 +29,7 @@ export function createRequirePermission(
         throw new AuthUnauthorizedError();
       }
 
-      if (!authorizationService.canWriteMedia(user)) {
+      if (!mediaAuthorizationPolicy.canSync(user)) {
         throw new AuthForbiddenError();
       }
 

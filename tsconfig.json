@@ -8,6 +8,7 @@
       "@src/*": ["src/*"],
       "@auth": ["src/modules/auth/public/index.ts"],
       "@auth-internal/*": ["src/modules/auth/*"],
+      "@media": ["src/modules/media/public/index.ts"],
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
       "@infrastructure/*": ["src/infrastructure/*"]

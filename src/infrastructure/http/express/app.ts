@@ -31,7 +31,7 @@ export const createHttpApp: CreateHttpApp = (deps) => {
   };
   const authRouter = createAuthRouter(authController, deps.tokenService);
   const mediaRouter =
-    deps.syncMediaUseCase && deps.userRepository && deps.authorizationService
+    deps.syncMediaUseCase && deps.userRepository && deps.mediaAuthorizationPolicy
       ? createMediaRouter(
           new MediaSyncController({
             syncMediaUseCase: deps.syncMediaUseCase,
@@ -39,7 +39,7 @@ export const createHttpApp: CreateHttpApp = (deps) => {
           }),
           deps.tokenService,
           deps.userRepository,
-          deps.authorizationService,
+          deps.mediaAuthorizationPolicy,
         )
       : null;
 

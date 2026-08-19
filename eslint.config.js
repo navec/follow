@@ -68,6 +68,7 @@ export default tseslint.config(
         { type: "domain", pattern: "src/domain/**/*.ts", mode: "full" },
         { type: "application", pattern: "src/application/**/*.ts", mode: "full" },
         { type: "auth-module", pattern: "src/modules/auth/**/*.ts", mode: "full" },
+        { type: "media-module", pattern: "src/modules/media/**/*.ts", mode: "full" },
         { type: "infrastructure", pattern: "src/infrastructure/**/*.ts", mode: "full" },
         { type: "bootstrap", pattern: "src/bootstrap/**/*.ts", mode: "full" }
       ]
@@ -82,6 +83,7 @@ export default tseslint.config(
           { from: "domain", allow: ["domain", "shared"] },
           { from: "application", allow: ["application", "auth-module", "domain", "shared"] },
           { from: "auth-module", allow: ["auth-module", "shared"] },
+          { from: "media-module", allow: ["media-module", "application", "shared"] },
           { from: "infrastructure", allow: ["infrastructure", "auth-module", "application", "domain", "shared"] },
           { from: "bootstrap", allow: ["bootstrap", "infrastructure", "auth-module", "application", "domain", "shared"] }
         ]

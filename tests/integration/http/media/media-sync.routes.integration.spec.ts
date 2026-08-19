@@ -3,8 +3,8 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createContainer } from "@src/bootstrap/container.js";
-import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
+import { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
@@ -43,7 +43,7 @@ describe("Media sync routes integration", () => {
       tokenService: ctx.tokenService,
       logger: pino({ enabled: false }),
       userRepository: ctx.userRepository,
-      authorizationService: new AuthorizationService(),
+      mediaAuthorizationPolicy: new MediaAuthorizationPolicy(),
       syncMediaUseCase
     });
   });

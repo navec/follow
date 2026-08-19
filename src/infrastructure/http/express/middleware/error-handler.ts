@@ -8,6 +8,7 @@ import {
   AuthInvalidCredentialsError,
   AuthUnauthorizedError,
 } from "@auth-internal/domain/errors/auth-errors.js";
+import { MediaForbiddenError } from "@application/media/errors/media-errors.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {
@@ -45,7 +46,7 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  if (error instanceof AuthForbiddenError) {
+  if (error instanceof AuthForbiddenError || error instanceof MediaForbiddenError) {
     res
       .status(403)
       .json({ error: { code: error.code, message: error.message } });

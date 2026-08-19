@@ -24,7 +24,7 @@ async function main(): Promise<void> {
     tokenService: container.tokenService,
     logger,
     userRepository: container.userRepository,
-    authorizationService: container.authorizationService,
+    mediaAuthorizationPolicy: container.mediaAuthorizationPolicy,
     syncMediaUseCase: container.syncMediaUseCase,
   });
 

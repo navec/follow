@@ -1,27 +1,23 @@
-import type { User } from "@auth-internal/domain/entities/user.js";
 import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
+import type { MediaActor } from "@application/media/models/media-actor.js";
 
 type ScheduleFn = (expression: string, handler: () => void | Promise<void>) => {
   stop?: () => void;
 };
 
 type SyncMediaUseCasePort = {
-  execute(request: SyncRequest, actor: User): Promise<SyncResult>;
+  execute(request: SyncRequest, actor: MediaActor): Promise<SyncResult>;
 };
 
 type SchedulerEnv = {
   MEDIA_SYNC_TMDB_FEED_CRON?: string | undefined;
 };
 
-const systemActor: User = {
+const systemActor: MediaActor = {
   id: "system-media-sync",
-  email: "system@follow.local",
-  passwordHash: "",
   role: "admin",
-  permissions: ["media:write"],
-  createdAt: new Date("2026-03-10T00:00:00.000Z"),
-  updatedAt: new Date("2026-03-10T00:00:00.000Z")
+  permissions: ["media:write"]
 };
 
 export class MediaSyncScheduler {

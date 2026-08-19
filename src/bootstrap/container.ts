@@ -3,10 +3,10 @@ import type { SignOptions } from "jsonwebtoken";
 import { PgUserRepository } from "@auth-internal/adapters/out/postgres/pg-user.repository.js";
 import { Argon2PasswordHasher } from "@auth-internal/adapters/out/security/argon2-password-hasher.js";
 import { JwtTokenService } from "@auth-internal/adapters/out/security/jwt-token-service.js";
-import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
 import { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
 import { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
 import { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
+import { MediaAuthorizationPolicy } from "@application/media/services/media-authorization.policy.js";
 import { SyncMediaUseCase } from "@application/media/use-cases/sync-media.use-case.js";
 import type { AppEnv } from "@infrastructure/config/index.js";
 import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
@@ -20,7 +20,7 @@ export function createContainer(env: AppEnv) {
   const userRepository = new PgUserRepository(pgPool);
   const mediaSyncRepository = new PgMediaSyncRepository(pgPool);
   const passwordHasher = new Argon2PasswordHasher();
-  const authorizationService = new AuthorizationService();
+  const mediaAuthorizationPolicy = new MediaAuthorizationPolicy();
   const tokenService = new JwtTokenService({
     secret: env.JWT_SECRET,
     expiresIn: env.JWT_EXPIRES_IN as Exclude<
@@ -82,7 +82,7 @@ export function createContainer(env: AppEnv) {
   const syncMediaUseCase = new SyncMediaUseCase(
     [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     mediaSyncRepository,
-    authorizationService,
+    mediaAuthorizationPolicy,
   );
 
   return {
@@ -90,7 +90,7 @@ export function createContainer(env: AppEnv) {
     userRepository,
     mediaSyncRepository,
     passwordHasher,
-    authorizationService,
+    mediaAuthorizationPolicy,
     tokenService,
     registerUserUseCase,
     loginUserUseCase,

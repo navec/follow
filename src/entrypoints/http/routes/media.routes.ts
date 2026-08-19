@@ -2,8 +2,8 @@ import { type RequestHandler, Router } from "express";
 
 import type { AuthApi } from "@auth";
 
+import { createAuthenticationMiddleware } from "../../../shared/http/middleware/authentication.middleware.js";
 import type { MediaSyncController } from "../controllers/media-sync.controller.js";
-import { createAuthenticate } from "../middleware/authenticate.js";
 
 import { MEDIA_ROUTES, type MediaRouteDefinition } from "./endpoints.js";
 
@@ -12,7 +12,9 @@ export function createMediaRouter(
   authApi: AuthApi,
 ): Router {
   const router = Router();
-  const authenticate = createAuthenticate(authApi);
+  const authenticate = createAuthenticationMiddleware((token) =>
+    authApi.authenticate(token),
+  );
   const handlers: Record<MediaRouteDefinition["id"], RequestHandler> = {
     sync: controller.sync
   };

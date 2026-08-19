@@ -1,8 +1,11 @@
 import express, { type RequestHandler } from "express";
 
+import { createErrorHandler } from "../../shared/http/error-handler.js";
+import { createRequestLoggerMiddleware } from "../../shared/http/middleware/request-logger.middleware.js";
+import { ZodBodyValidator } from "../../shared/http/validation/zod-validator.js";
+
 import { AuthController } from "./controllers/auth.controller.js";
 import { MediaSyncController } from "./controllers/media-sync.controller.js";
-import { createRequestLoggerMiddleware } from "./middleware/request-logger.js";
 import { createAuthRouter } from "./routes/auth.routes.js";
 import {
   ROOT_ROUTES,
@@ -10,8 +13,6 @@ import {
   ROUTE_GROUPS,
 } from "./routes/endpoints.js";
 import { createMediaRouter } from "./routes/media.routes.js";
-import { ZodBodyValidator } from "./validation/zod-validator.js";
-import { createErrorHandler } from "./error-handler.js";
 import type { CreateHttpApp } from "./types.js";
 
 export const createHttpApp: CreateHttpApp = (deps) => {

@@ -2,9 +2,9 @@ import type { NextFunction, Response } from "express";
 
 import type { MediaActor, MediaApi } from "@media";
 
-import type { AuthenticatedRequest } from "../context/authenticated-request.js";
+import type { AuthenticatedRequest } from "../../../shared/http/context/authenticated-request.js";
+import type { BodyValidator } from "../../../shared/http/validation/validator.js";
 import { mediaSyncSchema } from "../validation/schemas/media-sync.schemas.js";
-import type { BodyValidator } from "../validation/validator.js";
 
 interface MediaSyncControllerDeps {
   mediaApi: MediaApi;

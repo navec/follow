@@ -2,8 +2,8 @@ import { type RequestHandler, Router } from "express";
 
 import type { AuthApi } from "@auth";
 
+import { createAuthenticationMiddleware } from "../../../shared/http/middleware/authentication.middleware.js";
 import type { AuthController } from "../controllers/auth.controller.js";
-import { createAuthenticate } from "../middleware/authenticate.js";
 
 import { AUTH_ROUTES, type AuthRouteDefinition } from "./endpoints.js";
 
@@ -12,7 +12,9 @@ export function createAuthRouter(
   authApi: AuthApi,
 ): Router {
   const router = Router();
-  const authenticate = createAuthenticate(authApi);
+  const authenticate = createAuthenticationMiddleware((token) =>
+    authApi.authenticate(token),
+  );
   const handlers: Record<AuthRouteDefinition["id"], RequestHandler> = {
     register: controller.register,
     login: controller.login,

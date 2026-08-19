@@ -2,13 +2,13 @@ import type { NextFunction, Request, Response } from "express";
 
 import type { AuthApi } from "@auth";
 
-import type { AuthenticatedRequest } from "../context/authenticated-request.js";
+import type { AuthenticatedRequest } from "../../../shared/http/context/authenticated-request.js";
+import type { BodyValidator } from "../../../shared/http/validation/validator.js";
 import { authPresenter } from "../presenters/auth.presenter.js";
 import {
   loginSchema,
   registerSchema,
 } from "../validation/schemas/auth.schemas.js";
-import type { BodyValidator } from "../validation/validator.js";
 
 interface AuthControllerDeps {
   authApi: AuthApi;

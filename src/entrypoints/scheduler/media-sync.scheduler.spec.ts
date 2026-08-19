@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
+import type { MediaApi, SyncResult } from "@media";
 
 import { MediaSyncScheduler } from "./media-sync.scheduler.js";
 
 describe("MediaSyncScheduler", () => {
-  it("registers configured feed sync jobs and invokes the shared use case", async () => {
-    const execute = vi.fn().mockResolvedValue({
+  it("registers configured feed sync jobs and invokes MediaApi", async () => {
+    const sync = vi.fn<MediaApi["sync"]>().mockResolvedValue({
       created: 1,
       updated: 0,
       skipped: 0,
@@ -18,7 +18,7 @@ describe("MediaSyncScheduler", () => {
     });
     const scheduler = new MediaSyncScheduler(
       {
-        execute
+        sync,
       },
       {
         MEDIA_SYNC_TMDB_FEED_CRON: "0 * * * *"
@@ -30,7 +30,7 @@ describe("MediaSyncScheduler", () => {
     await Promise.resolve();
 
     expect(schedule).toHaveBeenCalledWith("0 * * * *", expect.any(Function));
-    expect(execute).toHaveBeenCalledWith(
+    expect(sync).toHaveBeenCalledWith(
       {
         provider: "tmdb",
         params: {
@@ -38,10 +38,11 @@ describe("MediaSyncScheduler", () => {
           feed: "popular"
         }
       },
-      expect.objectContaining({
+      {
+        id: "system-media-sync",
         role: "admin",
         permissions: ["media:write"]
-      })
+      }
     );
   });
 });

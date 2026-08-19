@@ -3,8 +3,6 @@ import type { Pool } from "pg";
 import pino from "pino";
 
 import { createContainer } from "@src/bootstrap/container.js";
-import { createHttpApp } from "@src/entrypoints/http/app.js";
-import { createAuthModule } from "@src/modules/auth/auth.module.js";
 import type { AppEnv } from "@platform/config/index.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";
@@ -31,19 +29,12 @@ function createTestEnv(): AppEnv {
 export async function createIntegrationTestContext(): Promise<IntegrationTestContext> {
   await migrateTestDbUpOnce();
 
-  const container = createContainer(createTestEnv());
-  const authApi = createAuthModule({
-    userRepository: container.userRepository,
-    passwordHasher: container.passwordHasher,
-    tokenService: container.tokenService,
-  });
-  const app = createHttpApp({
-    authApi,
-    logger: pino({ enabled: false })
+  const container = createContainer(createTestEnv(), {
+    logger: pino({ enabled: false }),
   });
 
   return {
-    app,
+    app: container.app,
     pgPool: container.pgPool
   };
 }

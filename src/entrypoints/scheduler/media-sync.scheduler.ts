@@ -1,13 +1,7 @@
-import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import type { MediaActor } from "@media-internal/application/models/media-actor.js";
+import type { MediaActor, MediaApi } from "@media";
 
 type ScheduleFn = (expression: string, handler: () => void | Promise<void>) => {
   stop?: () => void;
-};
-
-type SyncMediaUseCasePort = {
-  execute(request: SyncRequest, actor: MediaActor): Promise<SyncResult>;
 };
 
 type SchedulerEnv = {
@@ -22,7 +16,7 @@ const systemActor: MediaActor = {
 
 export class MediaSyncScheduler {
   constructor(
-    private readonly syncMediaUseCase: SyncMediaUseCasePort,
+    private readonly mediaApi: MediaApi,
     private readonly env: SchedulerEnv,
     private readonly schedule: ScheduleFn
   ) {}
@@ -30,7 +24,7 @@ export class MediaSyncScheduler {
   start(): void {
     if (this.env.MEDIA_SYNC_TMDB_FEED_CRON) {
       this.schedule(this.env.MEDIA_SYNC_TMDB_FEED_CRON, async () => {
-        await this.syncMediaUseCase.execute(
+        await this.mediaApi.sync(
           {
             provider: "tmdb",
             params: {

@@ -4,7 +4,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import { createContainer } from "@src/bootstrap/container.js";
 import { createHttpApp } from "@src/entrypoints/http/app.js";
-import { createAuthModule } from "@src/modules/auth/auth.module.js";
 import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
@@ -31,25 +30,23 @@ describe("Media sync routes integration", () => {
   beforeAll(async () => {
     await migrateTestDbUpOnce();
 
-    ctx = createContainer({
-      NODE_ENV: "test",
-      PORT: 0,
-      DATABASE_URL: getTestDatabaseUrl(),
-      JWT_SECRET: "integration-test-secret",
-      JWT_EXPIRES_IN: "1h",
-      TMDB_BASE_URL: "https://api.themoviedb.org/3",
-      TMDB_DEFAULT_LANGUAGE: "fr-FR",
-      TMDB_DEFAULT_REGION: "FR",
-      TMDB_REQUEST_TIMEOUT_MS: 5000,
-    });
-    const authApi = createAuthModule({
-      userRepository: ctx.userRepository,
-      passwordHasher: ctx.passwordHasher,
-      tokenService: ctx.tokenService,
-    });
+    ctx = createContainer(
+      {
+        NODE_ENV: "test",
+        PORT: 0,
+        DATABASE_URL: getTestDatabaseUrl(),
+        JWT_SECRET: "integration-test-secret",
+        JWT_EXPIRES_IN: "1h",
+        TMDB_BASE_URL: "https://api.themoviedb.org/3",
+        TMDB_DEFAULT_LANGUAGE: "fr-FR",
+        TMDB_DEFAULT_REGION: "FR",
+        TMDB_REQUEST_TIMEOUT_MS: 5000,
+      },
+      { logger: pino({ enabled: false }) },
+    );
     app = createHttpApp({
-      authApi,
-      logger: pino({ enabled: false }),
+      authApi: ctx.authApi,
+      logger: ctx.logger,
       mediaApi: syncMediaUseCase,
     });
   });

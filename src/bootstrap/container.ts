@@ -1,26 +1,39 @@
 import type { SignOptions } from "jsonwebtoken";
+import type { Logger } from "pino";
 
 import { PgUserRepository } from "@auth-internal/adapters/out/postgres/pg-user.repository.js";
 import { Argon2PasswordHasher } from "@auth-internal/adapters/out/security/argon2-password-hasher.js";
 import { JwtTokenService } from "@auth-internal/adapters/out/security/jwt-token-service.js";
-import { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
-import { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
-import { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
 import { MangadexMediaSyncProvider } from "@media-internal/adapters/out/mangadex/mangadex-media-sync.provider.js";
 import { PgMediaSyncRepository } from "@media-internal/adapters/out/postgres/pg-media-sync.repository.js";
 import { TmdbHttpClient } from "@media-internal/adapters/out/tmdb/tmdb-http.client.js";
 import { TmdbMediaSyncProvider } from "@media-internal/adapters/out/tmdb/tmdb-media-sync.provider.js";
-import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
-import { SyncMediaUseCase } from "@media-internal/application/use-cases/sync-media.use-case.js";
 import type { AppEnv } from "@platform/config/index.js";
 import { createPgPool } from "@platform/database/pg-client.js";
+import { createLogger } from "@platform/logging/logger.js";
 
-export function createContainer(env: AppEnv) {
+import { createHttpApp } from "../entrypoints/http/app.js";
+import { MediaSyncScheduler } from "../entrypoints/scheduler/media-sync.scheduler.js";
+import { createAuthModule } from "../modules/auth/auth.module.js";
+import { createMediaModule } from "../modules/media/media.module.js";
+
+type SchedulerSchedule = ConstructorParameters<typeof MediaSyncScheduler>[2];
+
+const disabledSchedule: SchedulerSchedule = () => ({});
+
+interface ContainerOptions {
+  logger?: Logger;
+  schedule?: SchedulerSchedule;
+}
+
+export function createContainer(
+  env: AppEnv,
+  options: ContainerOptions = {},
+) {
   const pgPool = createPgPool(env.DATABASE_URL);
   const userRepository = new PgUserRepository(pgPool);
   const mediaSyncRepository = new PgMediaSyncRepository(pgPool);
   const passwordHasher = new Argon2PasswordHasher();
-  const mediaAuthorizationPolicy = new MediaAuthorizationPolicy();
   const tokenService = new JwtTokenService({
     secret: env.JWT_SECRET,
     expiresIn: env.JWT_EXPIRES_IN as Exclude<
@@ -68,34 +81,30 @@ export function createContainer(env: AppEnv) {
     },
   });
 
-  const registerUserUseCase = new RegisterUserUseCase(
+  const authApi = createAuthModule({
     userRepository,
     passwordHasher,
     tokenService,
-  );
-  const loginUserUseCase = new LoginUserUseCase(
-    userRepository,
-    passwordHasher,
-    tokenService,
-  );
-  const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
-  const syncMediaUseCase = new SyncMediaUseCase(
-    [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
-    mediaSyncRepository,
-    mediaAuthorizationPolicy,
+  });
+  const mediaApi = createMediaModule({
+    providers: [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
+    repository: mediaSyncRepository,
+  });
+  const logger = options.logger ?? createLogger(env);
+  const app = createHttpApp({ authApi, mediaApi, logger });
+  const scheduler = new MediaSyncScheduler(
+    mediaApi,
+    env,
+    options.schedule ?? disabledSchedule,
   );
 
   return {
     pgPool,
-    userRepository,
-    mediaSyncRepository,
-    passwordHasher,
-    mediaAuthorizationPolicy,
-    tokenService,
-    registerUserUseCase,
-    loginUserUseCase,
-    getCurrentUserUseCase,
-    syncMediaUseCase,
+    authApi,
+    mediaApi,
+    app,
+    logger,
+    scheduler,
   };
 }
 

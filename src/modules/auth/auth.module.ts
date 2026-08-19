@@ -1,10 +1,9 @@
-import type { PasswordHasherPort } from "@auth-internal/application/ports/out/password-hasher.port.js";
-import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "@auth-internal/application/ports/out/user-repository.port.js";
-import { AuthenticateAccessTokenUseCase } from "@auth-internal/application/use-cases/authenticate-access-token.use-case.js";
-import { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
-import { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
-
+import type { PasswordHasherPort } from "./application/ports/out/password-hasher.port.js";
+import type { TokenServicePort } from "./application/ports/out/token-service.port.js";
+import type { UserRepositoryPort } from "./application/ports/out/user-repository.port.js";
+import { AuthenticateAccessTokenUseCase } from "./application/use-cases/authenticate-access-token.use-case.js";
+import { LoginUserUseCase } from "./application/use-cases/login-user.use-case.js";
+import { RegisterUserUseCase } from "./application/use-cases/register-user.use-case.js";
 import type { AuthApi } from "./public/auth-api.js";
 
 interface AuthModuleDependencies {

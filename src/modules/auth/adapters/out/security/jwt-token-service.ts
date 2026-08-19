@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import type {
   AccessTokenPayload,
   TokenServicePort,
-} from "@auth-internal/application/ports/out/token-service.port.js";
+} from "../../../application/ports/out/token-service.port.js";
 
 type JwtExpiresIn = Exclude<jwt.SignOptions["expiresIn"], undefined>;
 

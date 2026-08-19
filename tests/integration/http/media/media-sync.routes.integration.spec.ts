@@ -2,9 +2,9 @@ import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createContainer } from "@src/bootstrap/container.js";
-import { createHttpApp } from "@src/entrypoints/http/app.js";
 import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
+import { createHttpApp } from "@entrypoints/http/app.js";
+import { createContainer } from "@bootstrap/container.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
 

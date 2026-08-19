@@ -4,8 +4,8 @@ import "dotenv/config";
 
 import cron from "node-cron";
 
-import { flattenEndpoints } from "@src/entrypoints/http/routes/endpoints.js";
 import { loadEnv } from "@platform/config/index.js";
+import { flattenEndpoints } from "@entrypoints/http/routes/endpoints.js";
 
 import { createContainer } from "./container.js";
 

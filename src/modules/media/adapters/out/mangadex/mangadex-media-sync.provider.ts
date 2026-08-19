@@ -1,6 +1,6 @@
-import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
-import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
-import type { NormalizedWorkAggregate } from "@media-internal/domain/models/normalized-work-aggregate.js";
+import type { SyncRequest } from "../../../application/dto/sync-request.dto.js";
+import type { MediaSyncProviderPort } from "../../../application/ports/out/media-sync-provider.port.js";
+import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
 
 type MangadexWorkSyncRequest = {
   provider: "mangadex";

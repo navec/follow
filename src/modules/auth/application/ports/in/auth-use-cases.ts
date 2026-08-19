@@ -1,6 +1,6 @@
-import type { AuthResponseDto, CurrentUserResponseDto } from "@auth-internal/application/dto/auth-response.dto.js";
-import type { LoginInputDto } from "@auth-internal/application/dto/login.dto.js";
-import type { RegisterInputDto } from "@auth-internal/application/dto/register.dto.js";
+import type { AuthResponseDto, CurrentUserResponseDto } from "../../dto/auth-response.dto.js";
+import type { LoginInputDto } from "../../dto/login.dto.js";
+import type { RegisterInputDto } from "../../dto/register.dto.js";
 
 export interface RegisterUserUseCasePort {
   execute(input: RegisterInputDto): Promise<AuthResponseDto>;

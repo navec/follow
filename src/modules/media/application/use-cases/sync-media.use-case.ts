@@ -1,10 +1,11 @@
 import { MediaForbiddenError } from "@media";
-import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import type { MediaActor } from "@media-internal/application/models/media-actor.js";
-import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";
-import type { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
+
+import type { SyncRequest } from "../dto/sync-request.dto.js";
+import type { SyncResult } from "../dto/sync-result.dto.js";
+import type { MediaActor } from "../models/media-actor.js";
+import type { MediaSyncProviderPort } from "../ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "../ports/out/media-sync-repository.port.js";
+import type { MediaAuthorizationPolicy } from "../services/media-authorization.policy.js";
 
 export class SyncMediaUseCase {
   constructor(

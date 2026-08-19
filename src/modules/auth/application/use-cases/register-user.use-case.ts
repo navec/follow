@@ -1,10 +1,9 @@
-import { toPublicUser } from "@auth-internal/domain/entities/user.js";
+import { toPublicUser } from "../../domain/entities/user.js";
 import {
   AuthConflictError,
   AuthPasswordMismatchError,
-} from "@auth-internal/domain/errors/auth-errors.js";
-import { Email } from "@auth-internal/domain/value-objects/email.js";
-
+} from "../../domain/errors/auth-errors.js";
+import { Email } from "../../domain/value-objects/email.js";
 import type { AuthResponseDto } from "../dto/auth-response.dto.js";
 import type { RegisterInputDto } from "../dto/register.dto.js";
 import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";

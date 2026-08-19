@@ -1,8 +1,8 @@
 import type { Pool, PoolClient } from "pg";
 
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";
-import type { NormalizedWorkAggregate } from "@media-internal/domain/models/normalized-work-aggregate.js";
+import type { SyncResult } from "../../../application/dto/sync-result.dto.js";
+import type { MediaSyncRepositoryPort } from "../../../application/ports/out/media-sync-repository.port.js";
+import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
 
 interface IdRow {
   id: number;

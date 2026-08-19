@@ -1,6 +1,5 @@
-import { toPublicUser } from "@auth-internal/domain/entities/user.js";
-import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
-
+import { toPublicUser } from "../../domain/entities/user.js";
+import { AuthUnauthorizedError } from "../../domain/errors/auth-errors.js";
 import type { CurrentUserResponseDto } from "../dto/auth-response.dto.js";
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
 

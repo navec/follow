@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";
-
+import type { MediaSyncProviderPort } from "./application/ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "./application/ports/out/media-sync-repository.port.js";
 import { createMediaModule } from "./media.module.js";
 
 describe("createMediaModule", () => {

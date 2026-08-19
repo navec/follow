@@ -1,11 +1,41 @@
-import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import type { MediaActor } from "@media-internal/application/models/media-actor.js";
+export type SyncProvider = "tmdb" | "mangadex";
 
-export type SyncMediaCommand = SyncRequest;
+export type SyncMediaCommand =
+  | {
+      provider: SyncProvider;
+      params: {
+        target: "work";
+        externalId: number | string;
+        type: string;
+      };
+    }
+  | {
+      provider: SyncProvider;
+      params: {
+        target: "feed";
+        feed: string;
+      };
+    };
+
+export interface MediaActor {
+  id: string;
+  role: string;
+  permissions: string[];
+}
+
+export interface SyncError {
+  code: string;
+  message: string;
+  target?: string;
+}
+
+export interface SyncResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: ReadonlyArray<SyncError>;
+}
 
 export interface MediaApi {
   sync(command: SyncMediaCommand, actor: MediaActor): Promise<SyncResult>;
 }
-
-export type { MediaActor, SyncResult };

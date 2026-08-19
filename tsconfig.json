@@ -5,15 +5,11 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"],
       "@auth": ["src/modules/auth/public/index.ts"],
-      "@auth-internal/*": ["src/modules/auth/*"],
       "@media": ["src/modules/media/public/index.ts"],
-      "@media-internal/*": ["src/modules/media/*"],
       "@platform/*": ["src/platform/*"],
-      "@domain/*": ["src/domain/*"],
-      "@application/*": ["src/application/*"],
-      "@infrastructure/*": ["src/infrastructure/*"]
+      "@entrypoints/*": ["src/entrypoints/*"],
+      "@bootstrap/*": ["src/bootstrap/*"]
     },
     "lib": ["ES2022"],
     "strict": true,

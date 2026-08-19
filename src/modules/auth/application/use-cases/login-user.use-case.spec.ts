@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { User } from "@auth-internal/domain/entities/user.js";
-import { AuthInvalidCredentialsError } from "@auth-internal/domain/errors/auth-errors.js";
-
+import type { User } from "../../domain/entities/user.js";
+import { AuthInvalidCredentialsError } from "../../domain/errors/auth-errors.js";
 import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";
 import type { TokenServicePort } from "../ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";

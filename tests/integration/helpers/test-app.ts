@@ -2,8 +2,8 @@ import type { Express } from "express";
 import type { Pool } from "pg";
 import pino from "pino";
 
-import { createContainer } from "@src/bootstrap/container.js";
 import type { AppEnv } from "@platform/config/index.js";
+import { createContainer } from "@bootstrap/container.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";
 

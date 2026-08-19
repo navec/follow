@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { User } from "@auth-internal/domain/entities/user.js";
+import type { User } from "../../domain/entities/user.js";
 import {
   AuthConflictError,
   AuthPasswordMismatchError,
-} from "@auth-internal/domain/errors/auth-errors.js";
-import { Email } from "@auth-internal/domain/value-objects/email.js";
-
+} from "../../domain/errors/auth-errors.js";
+import { Email } from "../../domain/value-objects/email.js";
 import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";
 import type { TokenServicePort } from "../ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";

@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
-    "test:unit": "vitest run src/domain src/application",
+    "test:unit": "vitest run src/modules/*/domain src/modules/*/application",
+    "test:adapters": "vitest run src/modules/*/adapters src/platform src/entrypoints",
     "test:coverage": "vitest run --coverage.enabled --coverage.reporter=text --coverage.reporter=json-summary --coverage.reporter=lcov",
     "test:integration": "vitest run tests/integration --maxWorkers=1"
   },

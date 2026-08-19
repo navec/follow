@@ -1,8 +1,24 @@
-import type { AuthResponseDto } from "@auth-internal/application/dto/auth-response.dto.js";
-import type { LoginInputDto } from "@auth-internal/application/dto/login.dto.js";
-import type { RegisterInputDto } from "@auth-internal/application/dto/register.dto.js";
+export interface RegisterInput {
+  email: string;
+  password: string;
+  verifyPassword: string;
+}
 
-export type AuthResult = AuthResponseDto;
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface PublicUser {
+  id: string;
+  email: string;
+  role: "admin" | "user";
+}
+
+export interface AuthResult {
+  user: PublicUser;
+  accessToken: string;
+}
 
 export interface AuthenticatedIdentity {
   userId: string;
@@ -12,7 +28,7 @@ export interface AuthenticatedIdentity {
 }
 
 export interface AuthApi {
-  register(input: RegisterInputDto): Promise<AuthResult>;
-  login(input: LoginInputDto): Promise<AuthResult>;
+  register(input: RegisterInput): Promise<AuthResult>;
+  login(input: LoginInput): Promise<AuthResult>;
   authenticate(accessToken: string): Promise<AuthenticatedIdentity>;
 }

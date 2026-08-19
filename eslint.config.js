@@ -82,18 +82,35 @@ export default tseslint.config(
           { from: "auth-composition", allow: ["auth-composition", "auth-internal", "auth-http-entrypoint", "auth-public", "platform", "shared-http"] },
           { from: "auth-http-entrypoint", allow: ["auth-http-entrypoint", "auth-public", "shared-http"] },
           { from: "auth-public", allow: ["auth-public"] },
-          { from: "auth-internal", allow: ["auth-composition", "auth-internal", "auth-public", "platform"] },
+          { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform"] },
           { from: "media-composition", allow: ["media-composition", "media-internal", "media-http-entrypoint", "media-scheduler-entrypoint", "media-public", "platform", "shared-http", "shared-scheduling"] },
           { from: "media-http-entrypoint", allow: ["media-http-entrypoint", "media-public", "shared-http"] },
           { from: "media-scheduler-entrypoint", allow: ["media-scheduler-entrypoint", "media-public", "shared-scheduling"] },
           { from: "media-public", allow: ["media-public"] },
-          { from: "media-internal", allow: ["media-composition", "media-internal", "media-public", "platform"] },
+          { from: "media-internal", allow: ["media-internal", "media-public", "platform"] },
           { from: "shared-http", allow: ["shared-http"] },
           { from: "shared-scheduling", allow: ["shared-scheduling"] },
           { from: "platform", allow: ["platform"] },
           { from: "bootstrap", allow: ["bootstrap", "auth-composition", "auth-internal", "auth-public", "media-composition", "media-internal", "media-public", "platform", "shared-http", "shared-scheduling"] }
         ]
       }]
+    }
+  },
+  {
+    files: ["src/modules/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "express",
+          message: "Express is only allowed in module HTTP entrypoints."
+        }]
+      }]
+    }
+  },
+  {
+    files: ["src/modules/*/entrypoints/http/**/*.ts"],
+    rules: {
+      "no-restricted-imports": "off"
     }
   },
   {

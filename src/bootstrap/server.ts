@@ -5,7 +5,6 @@ import "dotenv/config";
 import cron from "node-cron";
 
 import { loadEnv } from "@platform/config/index.js";
-import { flattenEndpoints } from "@entrypoints/http/routes/endpoints.js";
 
 import { createContainer } from "./container.js";
 
@@ -20,7 +19,7 @@ async function main(): Promise<void> {
 
   server.listen(env.PORT, () => {
     container.logger.info({}, `API listening port ${env.PORT}`);
-    flattenEndpoints().forEach((endpoint) => {
+    container.httpEndpoints.forEach((endpoint) => {
       container.logger.info(
         {},
         `Method=${endpoint.method} Paht=${endpoint.path} endpoint`,

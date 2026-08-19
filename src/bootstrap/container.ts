@@ -5,7 +5,6 @@ import type { AppEnv } from "@platform/config/index.js";
 import { createPgPool } from "@platform/database/pg-client.js";
 import { createLogger } from "@platform/logging/logger.js";
 
-import { createHttpApp } from "../entrypoints/http/app.js";
 import { PgUserRepository } from "../modules/auth/adapters/out/postgres/pg-user.repository.js";
 import { Argon2PasswordHasher } from "../modules/auth/adapters/out/security/argon2-password-hasher.js";
 import { JwtTokenService } from "../modules/auth/adapters/out/security/jwt-token-service.js";
@@ -16,6 +15,8 @@ import { TmdbHttpClient } from "../modules/media/adapters/out/tmdb/tmdb-http.cli
 import { TmdbMediaSyncProvider } from "../modules/media/adapters/out/tmdb/tmdb-media-sync.provider.js";
 import { createMediaModule } from "../modules/media/media.module.js";
 import { ZodBodyValidator } from "../shared/http/validation/zod-validator.js";
+
+import { createHttpApp } from "./http/app.js";
 
 interface ContainerOptions {
   logger?: Logger;
@@ -92,7 +93,7 @@ export function createContainer(
   });
   const mediaApi = media.api;
   const logger = options.logger ?? createLogger(env);
-  const app = createHttpApp({ auth, media, logger });
+  const http = createHttpApp({ auth, media, logger });
 
   return {
     pgPool,
@@ -100,7 +101,8 @@ export function createContainer(
     authApi,
     media,
     mediaApi,
-    app,
+    app: http.app,
+    httpEndpoints: http.endpoints,
     logger,
   };
 }

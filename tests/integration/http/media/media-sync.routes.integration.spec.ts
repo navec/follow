@@ -3,9 +3,9 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
-import { createHttpApp } from "@entrypoints/http/app.js";
 import { createContainer } from "@bootstrap/container.js";
 
+import { createHttpApp } from "../../../../src/bootstrap/http/app.js";
 import { createMediaHttpDefinition } from "../../../../src/modules/media/entrypoints/http/media.routes.js";
 import { ZodBodyValidator } from "../../../../src/shared/http/validation/zod-validator.js";
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
@@ -27,7 +27,7 @@ describe("Media sync routes integration", () => {
   } satisfies MediaApi;
 
   let ctx: ReturnType<typeof createContainer> | undefined;
-  let app: ReturnType<typeof createHttpApp> | undefined;
+  let app: ReturnType<typeof createHttpApp>["app"] | undefined;
 
   beforeAll(async () => {
     await migrateTestDbUpOnce();
@@ -55,8 +55,9 @@ describe("Media sync routes integration", () => {
           api: syncMediaUseCase,
           bodyValidator: new ZodBodyValidator(),
         }),
+        scheduledJobs: [],
       },
-    });
+    }).app;
   });
 
   beforeEach(async () => {

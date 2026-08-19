@@ -17,12 +17,21 @@ const testEnv: AppEnv = {
 };
 
 describe("createContainer", () => {
-  it("exposes public module APIs and lifecycle resources", async () => {
+  it("exposes module contributions and lifecycle resources", async () => {
     const container = createContainer(testEnv);
 
     try {
       expect(container.authApi).toBeDefined();
       expect(container.mediaApi).toBeDefined();
+      expect(container.auth.http.id).toBe("auth");
+      expect(container.media.http.id).toBe("media");
+      expect(container.httpEndpoints).toEqual([
+        { method: "GET", path: "/health" },
+        { method: "POST", path: "/auth/register" },
+        { method: "POST", path: "/auth/login" },
+        { method: "GET", path: "/auth/me" },
+        { method: "POST", path: "/media/sync" },
+      ]);
       expect(container.pgPool).toBeDefined();
     } finally {
       await container.pgPool.end();

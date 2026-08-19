@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { MediaForbiddenError } from "@media";
+
 import type { SyncRequest } from "../dto/sync-request.dto.js";
 import type { SyncResult } from "../dto/sync-result.dto.js";
-import { MediaForbiddenError } from "../errors/media-errors.js";
 import type { MediaActor } from "../models/media-actor.js";
 import type { MediaSyncProviderPort } from "../ports/out/media-sync-provider.port.js";
 import type { MediaSyncRepositoryPort } from "../ports/out/media-sync-repository.port.js";

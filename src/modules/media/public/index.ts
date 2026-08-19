@@ -4,3 +4,4 @@ export type {
   SyncMediaCommand,
   SyncResult,
 } from "./media-api.js";
+export { MediaForbiddenError } from "./media-errors.js";

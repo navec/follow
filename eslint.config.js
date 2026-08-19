@@ -70,6 +70,7 @@ export default tseslint.config(
         { type: "auth-module", pattern: "src/modules/auth/**/*.ts", mode: "full" },
         { type: "media-module", pattern: "src/modules/media/**/*.ts", mode: "full" },
         { type: "platform", pattern: "src/platform/**/*.ts", mode: "full" },
+        { type: "entrypoint", pattern: "src/entrypoints/**/*.ts", mode: "full" },
         { type: "infrastructure", pattern: "src/infrastructure/**/*.ts", mode: "full" },
         { type: "bootstrap", pattern: "src/bootstrap/**/*.ts", mode: "full" }
       ]
@@ -86,8 +87,9 @@ export default tseslint.config(
           { from: "auth-module", allow: ["auth-module", "shared"] },
           { from: "media-module", allow: ["media-module", "shared"] },
           { from: "platform", allow: ["platform", "shared"] },
+          { from: "entrypoint", allow: ["entrypoint", "auth-module", "media-module", "platform", "shared"] },
           { from: "infrastructure", allow: ["infrastructure", "auth-module", "media-module", "platform", "application", "domain", "shared"] },
-          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "auth-module", "media-module", "platform", "application", "domain", "shared"] }
+          { from: "bootstrap", allow: ["bootstrap", "entrypoint", "infrastructure", "auth-module", "media-module", "platform", "application", "domain", "shared"] }
         ]
       }]
     }

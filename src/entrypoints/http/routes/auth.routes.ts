@@ -1,18 +1,18 @@
 import { type RequestHandler, Router } from "express";
 
-import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
+import type { AuthApi } from "@auth";
 
 import type { AuthController } from "../controllers/auth.controller.js";
-import { createRequireAuth } from "../middleware/require-auth.js";
+import { createAuthenticate } from "../middleware/authenticate.js";
 
 import { AUTH_ROUTES, type AuthRouteDefinition } from "./endpoints.js";
 
 export function createAuthRouter(
   controller: AuthController,
-  tokenService: TokenServicePort,
+  authApi: AuthApi,
 ): Router {
   const router = Router();
-  const requireAuth = createRequireAuth(tokenService);
+  const authenticate = createAuthenticate(authApi);
   const handlers: Record<AuthRouteDefinition["id"], RequestHandler> = {
     register: controller.register,
     login: controller.login,
@@ -22,7 +22,7 @@ export function createAuthRouter(
   AUTH_ROUTES.forEach((route) => {
     const method = route.method.toLowerCase() as "get" | "post";
     const middlewares = route.requireAuth
-      ? [requireAuth, handlers[route.id]]
+      ? [authenticate, handlers[route.id]]
       : [handlers[route.id]];
 
     router[method](route.path, ...middlewares);

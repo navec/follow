@@ -1,20 +1,13 @@
-import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Response } from "express";
 
-import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import type { MediaActor } from "@media-internal/application/models/media-actor.js";
+import type { MediaActor, MediaApi } from "@media";
 
+import type { AuthenticatedRequest } from "../context/authenticated-request.js";
 import { mediaSyncSchema } from "../validation/schemas/media-sync.schemas.js";
 import type { BodyValidator } from "../validation/validator.js";
 
-type AuthenticatedRequest = Request & { user?: MediaActor };
-
-interface SyncMediaUseCasePort {
-  execute(request: SyncRequest, actor: MediaActor): Promise<SyncResult>;
-}
-
 interface MediaSyncControllerDeps {
-  syncMediaUseCase: SyncMediaUseCasePort;
+  mediaApi: MediaApi;
   bodyValidator: BodyValidator;
 }
 
@@ -27,12 +20,17 @@ export class MediaSyncController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      if (!req.user) {
+      if (!req.identity) {
         throw new Error("Missing authenticated user");
       }
 
       const input = this.deps.bodyValidator.parse(mediaSyncSchema, req.body);
-      const result = await this.deps.syncMediaUseCase.execute(input, req.user);
+      const actor: MediaActor = {
+        id: req.identity.userId,
+        role: req.identity.role,
+        permissions: [...req.identity.permissions],
+      };
+      const result = await this.deps.mediaApi.sync(input, actor);
       res.status(202).json({ data: result });
     } catch (error) {
       next(error);

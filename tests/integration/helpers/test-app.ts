@@ -3,8 +3,9 @@ import type { Pool } from "pg";
 import pino from "pino";
 
 import { createContainer } from "@src/bootstrap/container.js";
+import { createHttpApp } from "@src/entrypoints/http/app.js";
+import { createAuthModule } from "@src/modules/auth/auth.module.js";
 import type { AppEnv } from "@platform/config/index.js";
-import { createHttpApp } from "@infrastructure/http/express/app.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";
 
@@ -31,11 +32,13 @@ export async function createIntegrationTestContext(): Promise<IntegrationTestCon
   await migrateTestDbUpOnce();
 
   const container = createContainer(createTestEnv());
-  const app = createHttpApp({
-    registerUserUseCase: container.registerUserUseCase,
-    loginUserUseCase: container.loginUserUseCase,
-    getCurrentUserUseCase: container.getCurrentUserUseCase,
+  const authApi = createAuthModule({
+    userRepository: container.userRepository,
+    passwordHasher: container.passwordHasher,
     tokenService: container.tokenService,
+  });
+  const app = createHttpApp({
+    authApi,
     logger: pino({ enabled: false })
   });
 

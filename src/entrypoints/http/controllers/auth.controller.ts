@@ -1,9 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 
-import type { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
-import type { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
-import type { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
+import type { AuthApi } from "@auth";
 
+import type { AuthenticatedRequest } from "../context/authenticated-request.js";
 import { authPresenter } from "../presenters/auth.presenter.js";
 import {
   loginSchema,
@@ -11,17 +10,8 @@ import {
 } from "../validation/schemas/auth.schemas.js";
 import type { BodyValidator } from "../validation/validator.js";
 
-interface AuthContext {
-  sub: string;
-  email: string;
-}
-
-type AuthenticatedRequest = Request & { auth?: AuthContext };
-
 interface AuthControllerDeps {
-  registerUserUseCase: RegisterUserUseCase;
-  loginUserUseCase: LoginUserUseCase;
-  getCurrentUserUseCase: GetCurrentUserUseCase;
+  authApi: AuthApi;
   bodyValidator: BodyValidator;
 }
 
@@ -35,7 +25,7 @@ export class AuthController {
   ): Promise<void> => {
     try {
       const input = this.deps.bodyValidator.parse(registerSchema, req.body);
-      const result = await this.deps.registerUserUseCase.execute(input);
+      const result = await this.deps.authApi.register(input);
       res.status(201).json(authPresenter.auth(result));
     } catch (error) {
       next(error);
@@ -49,7 +39,7 @@ export class AuthController {
   ): Promise<void> => {
     try {
       const input = this.deps.bodyValidator.parse(loginSchema, req.body);
-      const result = await this.deps.loginUserUseCase.execute(input);
+      const result = await this.deps.authApi.login(input);
       res.status(200).json(authPresenter.auth(result));
     } catch (error) {
       next(error);
@@ -62,13 +52,10 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      if (!req.auth?.sub) {
+      if (!req.identity) {
         throw new Error("Missing auth context");
       }
-      const result = await this.deps.getCurrentUserUseCase.execute({
-        userId: req.auth.sub,
-      });
-      res.status(200).json(authPresenter.me(result));
+      res.status(200).json(authPresenter.me(req.identity));
     } catch (error) {
       next(error);
     }

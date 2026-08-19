@@ -1,6 +1,6 @@
+import { MediaForbiddenError } from "@media";
 import type { SyncRequest } from "@media-internal/application/dto/sync-request.dto.js";
 import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import { MediaForbiddenError } from "@media-internal/application/errors/media-errors.js";
 import type { MediaActor } from "@media-internal/application/models/media-actor.js";
 import type { MediaSyncProviderPort } from "@media-internal/application/ports/out/media-sync-provider.port.js";
 import type { MediaSyncRepositoryPort } from "@media-internal/application/ports/out/media-sync-repository.port.js";

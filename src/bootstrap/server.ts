@@ -4,10 +4,12 @@ import "dotenv/config";
 
 import cron from "node-cron";
 
+import { createHttpApp } from "@src/entrypoints/http/app.js";
+import { flattenEndpoints } from "@src/entrypoints/http/routes/endpoints.js";
+import { createAuthModule } from "@src/modules/auth/auth.module.js";
+import type { MediaApi } from "@media";
 import { loadEnv } from "@platform/config/index.js";
 import { createLogger } from "@platform/logging/logger.js";
-import { createHttpApp } from "@infrastructure/http/express/app.js";
-import { flattenEndpoints } from "@infrastructure/http/express/routes/endpoints.js";
 import { MediaSyncScheduler } from "@infrastructure/scheduling/media-sync.scheduler.js";
 
 import { createContainer } from "./container.js";
@@ -16,16 +18,19 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const logger = createLogger(env);
   const container = createContainer(env);
+  const authApi = createAuthModule({
+    userRepository: container.userRepository,
+    passwordHasher: container.passwordHasher,
+    tokenService: container.tokenService,
+  });
+  const mediaApi: MediaApi = {
+    sync: (command, actor) => container.syncMediaUseCase.execute(command, actor),
+  };
 
   const app = createHttpApp({
-    registerUserUseCase: container.registerUserUseCase,
-    loginUserUseCase: container.loginUserUseCase,
-    getCurrentUserUseCase: container.getCurrentUserUseCase,
-    tokenService: container.tokenService,
+    authApi,
+    mediaApi,
     logger,
-    userRepository: container.userRepository,
-    mediaAuthorizationPolicy: container.mediaAuthorizationPolicy,
-    syncMediaUseCase: container.syncMediaUseCase,
   });
 
   const scheduler = new MediaSyncScheduler(

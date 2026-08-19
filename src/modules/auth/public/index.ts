@@ -3,3 +3,4 @@ export type {
   AuthenticatedIdentity,
   AuthResult,
 } from "./auth-api.js";
+export { AuthUnauthorizedError } from "./auth-errors.js";

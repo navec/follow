@@ -1,19 +1,19 @@
 import type { SignOptions } from "jsonwebtoken";
 
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
-import { GetCurrentUserUseCase } from "@application/auth/use-cases/get-current-user.use-case.js";
-import { LoginUserUseCase } from "@application/auth/use-cases/login-user.use-case.js";
-import { RegisterUserUseCase } from "@application/auth/use-cases/register-user.use-case.js";
+import { PgUserRepository } from "@auth-internal/adapters/out/postgres/pg-user.repository.js";
+import { Argon2PasswordHasher } from "@auth-internal/adapters/out/security/argon2-password-hasher.js";
+import { JwtTokenService } from "@auth-internal/adapters/out/security/jwt-token-service.js";
+import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
+import { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
+import { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
+import { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
 import { SyncMediaUseCase } from "@application/media/use-cases/sync-media.use-case.js";
 import type { AppEnv } from "@infrastructure/config/index.js";
 import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
 import { PgMediaSyncRepository } from "@infrastructure/persistence/postgres/repositories/pg-media-sync.repository.js";
-import { PgUserRepository } from "@infrastructure/persistence/postgres/repositories/pg-user.repository.js";
 import { MangadexMediaSyncProvider } from "@infrastructure/providers/mangadex/mangadex-media-sync.provider.js";
 import { TmdbHttpClient } from "@infrastructure/providers/tmdb/tmdb-http.client.js";
 import { TmdbMediaSyncProvider } from "@infrastructure/providers/tmdb/tmdb-media-sync.provider.js";
-import { Argon2PasswordHasher } from "@infrastructure/security/argon2-password-hasher.js";
-import { JwtTokenService } from "@infrastructure/security/jwt-token-service.js";
 
 export function createContainer(env: AppEnv) {
   const pgPool = createPgPool(env.DATABASE_URL);

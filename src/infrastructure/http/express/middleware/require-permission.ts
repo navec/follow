@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 
-import type { User } from "@domain/auth/entities/user.js";
-import { AuthForbiddenError, AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
-import type { UserRepositoryPort } from "@application/auth/ports/out/user-repository.port.js";
-import type { AuthorizationService } from "@application/auth/services/authorization.service.js";
+import type { UserRepositoryPort } from "@auth-internal/application/ports/out/user-repository.port.js";
+import type { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
+import { AuthForbiddenError, AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 
 type AuthenticatedRequest = Request & {
   auth?: { sub: string; email: string };

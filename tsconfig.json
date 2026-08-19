@@ -6,6 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
+      "@auth": ["src/modules/auth/public/index.ts"],
+      "@auth-internal/*": ["src/modules/auth/*"],
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
       "@infrastructure/*": ["src/infrastructure/*"]

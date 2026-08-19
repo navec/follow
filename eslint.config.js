@@ -37,7 +37,7 @@ export default tseslint.config(
           ["^node:"],
           ["^\\u0000"],
           ["^@?\\w"],
-          ["^@src/", "^@domain/", "^@application/", "^@infrastructure/"],
+          ["^@src/", "^@auth", "^@domain/", "^@application/", "^@infrastructure/"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$"],
           ["^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"]
         ]
@@ -80,10 +80,10 @@ export default tseslint.config(
         rules: [
           { from: "shared", allow: ["shared"] },
           { from: "domain", allow: ["domain", "shared"] },
-          { from: "application", allow: ["application", "domain", "shared"] },
-          { from: "auth-module", allow: ["auth-module", "application", "domain", "shared"] },
-          { from: "infrastructure", allow: ["infrastructure", "application", "domain", "shared"] },
-          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "application", "domain", "shared"] }
+          { from: "application", allow: ["application", "auth-module", "domain", "shared"] },
+          { from: "auth-module", allow: ["auth-module", "shared"] },
+          { from: "infrastructure", allow: ["infrastructure", "auth-module", "application", "domain", "shared"] },
+          { from: "bootstrap", allow: ["bootstrap", "infrastructure", "auth-module", "application", "domain", "shared"] }
         ]
       }]
     }

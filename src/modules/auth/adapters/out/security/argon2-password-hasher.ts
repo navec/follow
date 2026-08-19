@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 
-import type { PasswordHasherPort } from "@application/auth/ports/out/password-hasher.port.js";
+import type { PasswordHasherPort } from "@auth-internal/application/ports/out/password-hasher.port.js";
 
 export class Argon2PasswordHasher implements PasswordHasherPort {
   async hash(plainPassword: string): Promise<string> {

@@ -1,9 +1,9 @@
-import { toPublicUser } from "@domain/auth/entities/user.js";
+import { toPublicUser } from "@auth-internal/domain/entities/user.js";
 import {
   AuthConflictError,
   AuthPasswordMismatchError,
-} from "@domain/auth/errors/auth-errors.js";
-import { Email } from "@domain/auth/value-objects/email.js";
+} from "@auth-internal/domain/errors/auth-errors.js";
+import { Email } from "@auth-internal/domain/value-objects/email.js";
 
 import type { AuthResponseDto } from "../dto/auth-response.dto.js";
 import type { RegisterInputDto } from "../dto/register.dto.js";

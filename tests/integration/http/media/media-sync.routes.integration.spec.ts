@@ -3,7 +3,7 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createContainer } from "@src/bootstrap/container.js";
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
+import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 

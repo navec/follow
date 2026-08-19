@@ -1,4 +1,4 @@
-import { AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
+import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 
 import type { TokenServicePort } from "../ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";

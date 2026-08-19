@@ -1,4 +1,4 @@
-import type { AuthResponseDto, CurrentUserResponseDto } from "@application/auth/dto/auth-response.dto.js";
+import type { AuthResponseDto, CurrentUserResponseDto } from "@auth-internal/application/dto/auth-response.dto.js";
 
 export const authPresenter = {
   auth(data: AuthResponseDto) {

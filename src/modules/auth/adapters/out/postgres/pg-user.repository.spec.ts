@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthConflictError } from "@domain/auth/errors/auth-errors.js";
+import { AuthConflictError } from "@auth-internal/domain/errors/auth-errors.js";
 
 import { PgUserRepository } from "./pg-user.repository.js";
 

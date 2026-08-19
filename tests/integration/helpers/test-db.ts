@@ -7,7 +7,7 @@ import type { Pool } from "pg";
 
 const migrationsDir = path.resolve(
   process.cwd(),
-  "src/infrastructure/persistence/postgres/migrations/*.up.js",
+  "src/**/postgres/migrations/*.up.js",
 );
 
 let migrationsApplied = false;

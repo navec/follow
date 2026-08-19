@@ -1,6 +1,6 @@
-import type { User } from "@domain/auth/entities/user.js";
-import { AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
-import type { AuthorizationService } from "@application/auth/services/authorization.service.js";
+import type { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
+import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
 import type { MediaSyncProviderPort } from "@application/media/ports/out/media-sync-provider.port.js";

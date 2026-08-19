@@ -7,7 +7,7 @@ import {
   AuthForbiddenError,
   AuthInvalidCredentialsError,
   AuthUnauthorizedError,
-} from "@domain/auth/errors/auth-errors.js";
+} from "@auth-internal/domain/errors/auth-errors.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {

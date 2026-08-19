@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 
-import type { GetCurrentUserUseCase } from "@application/auth/use-cases/get-current-user.use-case.js";
-import type { LoginUserUseCase } from "@application/auth/use-cases/login-user.use-case.js";
-import type { RegisterUserUseCase } from "@application/auth/use-cases/register-user.use-case.js";
+import type { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
+import type { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
+import type { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
 
 import { authPresenter } from "../presenters/auth.presenter.js";
 import {

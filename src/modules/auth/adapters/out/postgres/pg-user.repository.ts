@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import type { Pool, PoolClient } from "pg";
 
-import type { User } from "@domain/auth/entities/user.js";
-import { AuthConflictError } from "@domain/auth/errors/auth-errors.js";
 import type {
   CreateUserRecord,
   UserRepositoryPort,
-} from "@application/auth/ports/out/user-repository.port.js";
+} from "@auth-internal/application/ports/out/user-repository.port.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
+import { AuthConflictError } from "@auth-internal/domain/errors/auth-errors.js";
 
 interface UserRow {
   id: string;

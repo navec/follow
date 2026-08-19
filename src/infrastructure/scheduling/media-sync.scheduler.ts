@@ -1,4 +1,4 @@
-import type { User } from "@domain/auth/entities/user.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
 import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
 import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
 

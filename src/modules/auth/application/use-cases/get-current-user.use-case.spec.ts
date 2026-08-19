@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { User } from "@domain/auth/entities/user.js";
-import { AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
+import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 
 import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
 

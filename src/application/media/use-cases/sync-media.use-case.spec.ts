@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { User } from "@domain/auth/entities/user.js";
-import { AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
-import { AuthorizationService } from "@application/auth/services/authorization.service.js";
+import { AuthorizationService } from "@auth-internal/application/services/authorization.service.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
+import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 
 import type { SyncRequest } from "../dto/sync-request.dto.js";
 import type { SyncResult } from "../dto/sync-result.dto.js";

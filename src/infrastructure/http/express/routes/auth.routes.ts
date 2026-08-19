@@ -1,6 +1,6 @@
 import { type RequestHandler, Router } from "express";
 
-import type { TokenServicePort } from "@application/auth/ports/out/token-service.port.js";
+import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
 
 import type { AuthController } from "../controllers/auth.controller.js";
 import { createRequireAuth } from "../middleware/require-auth.js";

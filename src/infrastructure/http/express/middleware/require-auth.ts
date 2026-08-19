@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { AuthUnauthorizedError } from "@domain/auth/errors/auth-errors.js";
-import type { TokenServicePort } from "@application/auth/ports/out/token-service.port.js";
+import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
+import { AuthUnauthorizedError } from "@auth-internal/domain/errors/auth-errors.js";
 
 type AuthenticatedRequest = Request & { auth?: { sub: string; email: string } };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { User } from "@domain/auth/entities/user.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
 
 import { AuthorizationService } from "./authorization.service.js";
 

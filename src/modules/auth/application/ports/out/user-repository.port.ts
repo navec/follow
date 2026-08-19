@@ -1,4 +1,4 @@
-import type { User } from "@domain/auth/entities/user.js";
+import type { User } from "@auth-internal/domain/entities/user.js";
 
 export interface CreateUserRecord {
   email: string;

@@ -1,5 +1,6 @@
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
 import { describe, expect, it, vi } from "vitest";
+
+import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
 
 import { MediaSyncScheduler } from "./media-sync.scheduler.js";
 

@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 import pino from "pino";
 
 import { createContainer } from "@src/bootstrap/container.js";
-import type { AppEnv } from "@infrastructure/config/index.js";
+import type { AppEnv } from "@platform/config/index.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";

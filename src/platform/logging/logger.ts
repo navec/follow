@@ -1,6 +1,6 @@
 import pino, { type Logger, type LoggerOptions } from "pino";
 
-import type { AppEnv } from "@infrastructure/config/index.js";
+import type { AppEnv } from "@platform/config/index.js";
 
 export function createLogger(
   env: Pick<AppEnv, "NODE_ENV" | "LOG_LEVEL">,

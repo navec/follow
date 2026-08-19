@@ -1,9 +1,3 @@
-import { MangadexMediaSyncProvider } from "@media-internal/adapters/out/mangadex/mangadex-media-sync.provider.js";
-import { PgMediaSyncRepository } from "@media-internal/adapters/out/postgres/pg-media-sync.repository.js";
-import { TmdbHttpClient } from "@media-internal/adapters/out/tmdb/tmdb-http.client.js";
-import { TmdbMediaSyncProvider } from "@media-internal/adapters/out/tmdb/tmdb-media-sync.provider.js";
-import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
-import { SyncMediaUseCase } from "@media-internal/application/use-cases/sync-media.use-case.js";
 import type { SignOptions } from "jsonwebtoken";
 
 import { PgUserRepository } from "@auth-internal/adapters/out/postgres/pg-user.repository.js";
@@ -12,8 +6,14 @@ import { JwtTokenService } from "@auth-internal/adapters/out/security/jwt-token-
 import { GetCurrentUserUseCase } from "@auth-internal/application/use-cases/get-current-user.use-case.js";
 import { LoginUserUseCase } from "@auth-internal/application/use-cases/login-user.use-case.js";
 import { RegisterUserUseCase } from "@auth-internal/application/use-cases/register-user.use-case.js";
-import type { AppEnv } from "@infrastructure/config/index.js";
-import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js";
+import { MangadexMediaSyncProvider } from "@media-internal/adapters/out/mangadex/mangadex-media-sync.provider.js";
+import { PgMediaSyncRepository } from "@media-internal/adapters/out/postgres/pg-media-sync.repository.js";
+import { TmdbHttpClient } from "@media-internal/adapters/out/tmdb/tmdb-http.client.js";
+import { TmdbMediaSyncProvider } from "@media-internal/adapters/out/tmdb/tmdb-media-sync.provider.js";
+import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
+import { SyncMediaUseCase } from "@media-internal/application/use-cases/sync-media.use-case.js";
+import type { AppEnv } from "@platform/config/index.js";
+import { createPgPool } from "@platform/database/pg-client.js";
 
 export function createContainer(env: AppEnv) {
   const pgPool = createPgPool(env.DATABASE_URL);

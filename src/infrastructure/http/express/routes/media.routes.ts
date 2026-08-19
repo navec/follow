@@ -1,8 +1,8 @@
-import type { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
 import { type RequestHandler, Router } from "express";
 
 import type { TokenServicePort } from "@auth-internal/application/ports/out/token-service.port.js";
 import type { UserRepositoryPort } from "@auth-internal/application/ports/out/user-repository.port.js";
+import type { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
 
 import type { MediaSyncController } from "../controllers/media-sync.controller.js";
 import { createRequireAuth } from "../middleware/require-auth.js";

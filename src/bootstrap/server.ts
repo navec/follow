@@ -4,10 +4,10 @@ import "dotenv/config";
 
 import cron from "node-cron";
 
-import { loadEnv } from "@infrastructure/config/index.js";
+import { loadEnv } from "@platform/config/index.js";
+import { createLogger } from "@platform/logging/logger.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 import { flattenEndpoints } from "@infrastructure/http/express/routes/endpoints.js";
-import { createLogger } from "@infrastructure/logging/logger.js";
 import { MediaSyncScheduler } from "@infrastructure/scheduling/media-sync.scheduler.js";
 
 import { createContainer } from "./container.js";

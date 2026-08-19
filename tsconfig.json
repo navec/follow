@@ -10,6 +10,7 @@
       "@auth-internal/*": ["src/modules/auth/*"],
       "@media": ["src/modules/media/public/index.ts"],
       "@media-internal/*": ["src/modules/media/*"],
+      "@platform/*": ["src/platform/*"],
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
       "@infrastructure/*": ["src/infrastructure/*"]
@@ -27,6 +28,6 @@
     "sourceMap": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

@@ -1,10 +1,10 @@
-import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
-import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
 import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createContainer } from "@src/bootstrap/container.js";
+import type { SyncResult } from "@media-internal/application/dto/sync-result.dto.js";
+import { MediaAuthorizationPolicy } from "@media-internal/application/services/media-authorization.policy.js";
 import { createHttpApp } from "@infrastructure/http/express/app.js";
 
 import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";

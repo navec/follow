@@ -15,10 +15,13 @@ interface TmdbWorkPayload {
   id: number;
   media_type?: string;
   release_date?: string;
+  first_air_date?: string;
 }
 
 interface TmdbClient {
   getWork(request: TmdbWorkSyncRequest): Promise<TmdbWorkPayload>;
+  getPopularMovies(): Promise<{ results: TmdbWorkPayload[] }>;
+  getPopularTv(): Promise<{ results: TmdbWorkPayload[] }>;
 }
 
 export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
@@ -29,26 +32,57 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
   }
 
   async fetch(request: SyncRequest): Promise<ReadonlyArray<NormalizedWorkAggregate>> {
-    if (request.provider !== "tmdb" || request.params.target !== "work") {
-      throw new Error("TMDB provider currently supports only targeted work sync");
+    if (request.provider !== "tmdb") {
+      throw new Error("TMDB provider supports only tmdb requests");
     }
 
-    const payload = await this.client.getWork(request as TmdbWorkSyncRequest);
-    const work: NormalizedWorkAggregate["work"] = {
-      type: request.params.type
-    };
+    if (request.params.target === "work") {
+      const payload = await this.client.getWork(request as TmdbWorkSyncRequest);
+      return [this.toAggregate(payload, this.normalizeWorkType(request.params.type))];
+    }
+
+    if (request.params.target === "feed" && request.params.feed === "popular") {
+      const [movies, tvShows] = await Promise.all([
+        this.client.getPopularMovies(),
+        this.client.getPopularTv(),
+      ]);
+
+      return [
+        ...movies.results.map((payload) => this.toAggregate(payload, "movie")),
+        ...tvShows.results.map((payload) =>
+          this.toAggregate(payload, this.normalizeWorkType("tv")),
+        ),
+      ];
+    }
+
+    throw new Error(`Unsupported TMDB sync target: ${request.params.target}`);
+  }
+
+  private toAggregate(
+    payload: TmdbWorkPayload,
+    type: string,
+  ): NormalizedWorkAggregate {
+    const work: NormalizedWorkAggregate["work"] = { type };
     if (payload.release_date) {
       work.releaseDate = payload.release_date;
+    } else if (payload.first_air_date) {
+      work.releaseDate = payload.first_air_date;
     }
 
-    return [
-      {
-        source: {
-          provider: "tmdb",
-          sourceValue: String(payload.id)
-        },
-        work
-      }
-    ];
+    return {
+      source: {
+        provider: "tmdb",
+        sourceValue: String(payload.id),
+      },
+      work,
+    };
+  }
+
+  private normalizeWorkType(type: string): string {
+    if (type === "tv") {
+      return "series";
+    }
+
+    return type;
   }
 }

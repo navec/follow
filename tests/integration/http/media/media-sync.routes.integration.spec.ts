@@ -30,7 +30,11 @@ describe("Media sync routes integration", () => {
       PORT: 0,
       DATABASE_URL: getTestDatabaseUrl(),
       JWT_SECRET: "integration-test-secret",
-      JWT_EXPIRES_IN: "1h"
+      JWT_EXPIRES_IN: "1h",
+      TMDB_BASE_URL: "https://api.themoviedb.org/3",
+      TMDB_DEFAULT_LANGUAGE: "fr-FR",
+      TMDB_DEFAULT_REGION: "FR",
+      TMDB_REQUEST_TIMEOUT_MS: 5000,
     });
     app = createHttpApp({
       registerUserUseCase: ctx.registerUserUseCase,

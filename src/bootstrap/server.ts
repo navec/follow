@@ -16,6 +16,7 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const logger = createLogger(env);
   const container = createContainer(env);
+
   const app = createHttpApp({
     registerUserUseCase: container.registerUserUseCase,
     loginUserUseCase: container.loginUserUseCase,
@@ -26,7 +27,12 @@ async function main(): Promise<void> {
     authorizationService: container.authorizationService,
     syncMediaUseCase: container.syncMediaUseCase,
   });
-  const scheduler = new MediaSyncScheduler(container.syncMediaUseCase, env, cron.schedule);
+
+  const scheduler = new MediaSyncScheduler(
+    container.syncMediaUseCase,
+    env,
+    cron.schedule,
+  );
   scheduler.start();
 
   const server = createServer(app);

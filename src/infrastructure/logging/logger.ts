@@ -2,9 +2,12 @@ import pino, { type Logger, type LoggerOptions } from "pino";
 
 import type { AppEnv } from "@infrastructure/config/index.js";
 
-export function createLogger(env: Pick<AppEnv, "NODE_ENV">): Logger {
+export function createLogger(
+  env: Pick<AppEnv, "NODE_ENV" | "LOG_LEVEL">,
+): Logger {
   const options: LoggerOptions = {
-    level: env.NODE_ENV === "production" ? "info" : "debug"
+    level:
+      env.LOG_LEVEL ?? (env.NODE_ENV === "production" ? "info" : "debug"),
   };
 
   if (env.NODE_ENV !== "production") {
@@ -13,8 +16,8 @@ export function createLogger(env: Pick<AppEnv, "NODE_ENV">): Logger {
       options: {
         colorize: true,
         translateTime: "SYS:standard",
-        ignore: "pid,hostname"
-      }
+        ignore: "pid,hostname",
+      },
     };
   }
 

@@ -10,6 +10,7 @@ import { createPgPool } from "@infrastructure/persistence/postgres/pg-client.js"
 import { PgMediaSyncRepository } from "@infrastructure/persistence/postgres/repositories/pg-media-sync.repository.js";
 import { PgUserRepository } from "@infrastructure/persistence/postgres/repositories/pg-user.repository.js";
 import { MangadexMediaSyncProvider } from "@infrastructure/providers/mangadex/mangadex-media-sync.provider.js";
+import { TmdbHttpClient } from "@infrastructure/providers/tmdb/tmdb-http.client.js";
 import { TmdbMediaSyncProvider } from "@infrastructure/providers/tmdb/tmdb-media-sync.provider.js";
 import { Argon2PasswordHasher } from "@infrastructure/security/argon2-password-hasher.js";
 import { JwtTokenService } from "@infrastructure/security/jwt-token-service.js";
@@ -22,19 +23,38 @@ export function createContainer(env: AppEnv) {
   const authorizationService = new AuthorizationService();
   const tokenService = new JwtTokenService({
     secret: env.JWT_SECRET,
-    expiresIn: env.JWT_EXPIRES_IN as Exclude<SignOptions["expiresIn"], undefined>
+    expiresIn: env.JWT_EXPIRES_IN as Exclude<
+      SignOptions["expiresIn"],
+      undefined
+    >,
   });
-  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider({
-    async getWork(request: {
-      provider: "tmdb";
-      params: { target: "work"; externalId: number | string; type: string };
-    }) {
-      return {
-        id: Number(request.params.externalId),
-        media_type: request.params.type
+
+  const tmdbClient = env.TMDB_READ_ACCESS_TOKEN
+    ? new TmdbHttpClient({
+        baseUrl: env.TMDB_BASE_URL,
+        readAccessToken: env.TMDB_READ_ACCESS_TOKEN,
+        defaultLanguage: env.TMDB_DEFAULT_LANGUAGE,
+        defaultRegion: env.TMDB_DEFAULT_REGION,
+        requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+      })
+    : {
+        async getWork(request: {
+          provider: "tmdb";
+          params: { target: "work"; externalId: number | string; type: string };
+        }) {
+          return {
+            id: Number(request.params.externalId),
+            media_type: request.params.type,
+          };
+        },
+        async getPopularMovies() {
+          return { results: [] };
+        },
+        async getPopularTv() {
+          return { results: [] };
+        },
       };
-    }
-  });
+  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient);
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
     async getWorkOrFeed(request: {
       provider: "mangadex";
@@ -42,19 +62,27 @@ export function createContainer(env: AppEnv) {
     }) {
       return {
         data: {
-          id: String(request.params.externalId)
-        }
+          id: String(request.params.externalId),
+        },
       };
-    }
+    },
   });
 
-  const registerUserUseCase = new RegisterUserUseCase(userRepository, passwordHasher, tokenService);
-  const loginUserUseCase = new LoginUserUseCase(userRepository, passwordHasher, tokenService);
+  const registerUserUseCase = new RegisterUserUseCase(
+    userRepository,
+    passwordHasher,
+    tokenService,
+  );
+  const loginUserUseCase = new LoginUserUseCase(
+    userRepository,
+    passwordHasher,
+    tokenService,
+  );
   const getCurrentUserUseCase = new GetCurrentUserUseCase(userRepository);
   const syncMediaUseCase = new SyncMediaUseCase(
     [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     mediaSyncRepository,
-    authorizationService
+    authorizationService,
   );
 
   return {
@@ -67,7 +95,7 @@ export function createContainer(env: AppEnv) {
     registerUserUseCase,
     loginUserUseCase,
     getCurrentUserUseCase,
-    syncMediaUseCase
+    syncMediaUseCase,
   };
 }
 

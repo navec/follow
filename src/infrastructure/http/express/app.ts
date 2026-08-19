@@ -1,15 +1,4 @@
-import express, { type Express, type RequestHandler } from "express";
-import type { Logger } from "pino";
-
-import type { User } from "@domain/auth/entities/user.js";
-import type { TokenServicePort } from "@application/auth/ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "@application/auth/ports/out/user-repository.port.js";
-import type { AuthorizationService } from "@application/auth/services/authorization.service.js";
-import type { GetCurrentUserUseCase } from "@application/auth/use-cases/get-current-user.use-case.js";
-import type { LoginUserUseCase } from "@application/auth/use-cases/login-user.use-case.js";
-import type { RegisterUserUseCase } from "@application/auth/use-cases/register-user.use-case.js";
-import type { SyncRequest } from "@application/media/dto/sync-request.dto.js";
-import type { SyncResult } from "@application/media/dto/sync-result.dto.js";
+import express, { type RequestHandler } from "express";
 
 import { AuthController } from "./controllers/auth.controller.js";
 import { MediaSyncController } from "./controllers/media-sync.controller.js";
@@ -23,22 +12,11 @@ import {
 } from "./routes/endpoints.js";
 import { createMediaRouter } from "./routes/media.routes.js";
 import { ZodBodyValidator } from "./validation/zod-validator.js";
+import type { CreateHttpApp } from "./types.js";
 
-export interface HttpAppDeps {
-  registerUserUseCase: RegisterUserUseCase;
-  loginUserUseCase: LoginUserUseCase;
-  getCurrentUserUseCase: GetCurrentUserUseCase;
-  tokenService: TokenServicePort;
-  logger: Logger;
-  userRepository?: UserRepositoryPort;
-  authorizationService?: AuthorizationService;
-  syncMediaUseCase?: {
-    execute(request: SyncRequest, actor: User): Promise<SyncResult>;
-  };
-}
-
-export function createHttpApp(deps: HttpAppDeps): Express {
+export const createHttpApp: CreateHttpApp = (deps) => {
   const app = express();
+
   const authController = new AuthController({
     registerUserUseCase: deps.registerUserUseCase,
     loginUserUseCase: deps.loginUserUseCase,
@@ -61,7 +39,7 @@ export function createHttpApp(deps: HttpAppDeps): Express {
           }),
           deps.tokenService,
           deps.userRepository,
-          deps.authorizationService
+          deps.authorizationService,
         )
       : null;
 
@@ -87,4 +65,4 @@ export function createHttpApp(deps: HttpAppDeps): Express {
   app.use(errorHandler);
 
   return app;
-}
+};

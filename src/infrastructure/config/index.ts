@@ -1,2 +1,2 @@
-export type { AppEnv } from "./env.js";
 export { loadEnv } from "./env.js";
+export type { AppEnv } from "./schema.js";

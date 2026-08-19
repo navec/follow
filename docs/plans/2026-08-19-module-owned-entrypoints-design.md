@@ -34,13 +34,15 @@ src/
 │       ├── entrypoints/{http,scheduler}/
 │       └── media.module.ts
 ├── shared/
-│   └── http/
-│       ├── contracts/
-│       ├── context/
-│       ├── middleware/
-│       ├── validation/
-│       ├── error-handler.ts
-│       └── route-registry.ts
+│   ├── http/
+│   │   ├── contracts/
+│   │   ├── context/
+│   │   ├── middleware/
+│   │   ├── validation/
+│   │   ├── error-handler.ts
+│   │   └── route-registry.ts
+│   └── scheduling/
+│       └── scheduled-job-definition.ts
 └── bootstrap/
     ├── http/app.ts
     ├── container.ts
@@ -149,6 +151,10 @@ returns declarative scheduled job definitions from `createMediaModule()`.
 Bootstrap provides the scheduling mechanism and registers each returned job.
 The trusted Media system actor and the Media-specific synchronization command
 remain owned by Media.
+
+The small transport-neutral `ScheduledJobDefinition` contract lives under
+`shared/scheduling`, allowing future modules to contribute jobs without
+depending on Media or on the concrete scheduling library.
 
 ## Error handling
 

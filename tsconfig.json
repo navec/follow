@@ -8,7 +8,6 @@
       "@auth": ["src/modules/auth/public/index.ts"],
       "@media": ["src/modules/media/public/index.ts"],
       "@platform/*": ["src/platform/*"],
-      "@entrypoints/*": ["src/entrypoints/*"],
       "@bootstrap/*": ["src/bootstrap/*"]
     },
     "lib": ["ES2022"],

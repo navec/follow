@@ -90,7 +90,7 @@ npm run typecheck    # TypeScript strict
 npm run lint         # ESLint
 npm run lint:fix     # auto-fix + tri imports
 npm run test:unit    # tests unitaires co-localisés (domain/application)
-npm run test:adapters # adapters, Platform et entrypoints
+npm run test:adapters # adapters, Platform et entrypoints des modules
 npm run test:coverage  # coverage sur unitaires + intégration
 npm run test:integration  # nécessite TEST_DATABASE_URL + DB follow_test
 npm run build        # build -> dist/
@@ -175,11 +175,12 @@ Note: l'image utilise un `Dockerfile` multi-stage (`node:24-bookworm-slim`) et e
 ## Structure (résumé)
 
 - `src/modules/auth` et `src/modules/media` : domaine, cas d’usage, ports,
-  adaptateurs et contrat public propres à chaque module
-- `src/entrypoints` : traduction des déclencheurs HTTP et scheduler vers les API
-  publiques des modules
+  adaptateurs, contrat public et entrypoints propres à chaque module
+- `src/shared/http` et `src/shared/scheduling` : contrats et mécanismes techniques
+  transversaux, sans dépendance vers un module métier
 - `src/platform` : configuration, journalisation et ressources PostgreSQL
-- `src/bootstrap` : composition des modules et gestion du cycle de vie
+- `src/bootstrap` : composition des contributions HTTP et scheduler des modules,
+  puis gestion du cycle de vie
 - `tests/integration` : tests d'intégration HTTP/DB
 
 Auth et Media ne s’importent jamais mutuellement. Un consommateur externe utilise
@@ -188,12 +189,13 @@ restent internes au module. ESLint vérifie ces frontières.
 
 ### Flux HTTP protégé
 
-1. L’entrypoint HTTP valide le payload.
+1. L’entrypoint HTTP possédé par le module valide le payload.
 2. Le middleware appelle `AuthApi.authenticate` avec le bearer token.
 3. L’identité publique Auth est stockée sur la requête.
 4. Pour Media, le contrôleur la convertit explicitement en `MediaActor`.
 5. `MediaApi` applique sa propre politique d’autorisation puis exécute la commande.
-6. L’entrypoint traduit le résultat ou l’erreur publique en réponse HTTP stable.
+6. L’entrypoint du module traduit le résultat ou l’erreur publique en réponse
+   HTTP stable.
 
 ## Endpoints auth (MVP)
 
@@ -235,9 +237,9 @@ Accès requis :
 - utilisateur avec `role=admin`
 - permission `media:write`
 
-Le scheduler utilise uniquement `MediaApi`, avec un `MediaActor` système dédié. Le
-premier job supporté est un feed TMDB `popular` déclenché par
-`MEDIA_SYNC_TMDB_FEED_CRON`.
+Media déclare ses jobs planifiés avec un `MediaActor` système dédié, puis Bootstrap
+les enregistre auprès du scheduler. Le premier job supporté est un feed TMDB
+`popular` déclenché par `MEDIA_SYNC_TMDB_FEED_CRON`.
 
 ## Migration Postgres (MVP)
 

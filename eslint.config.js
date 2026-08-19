@@ -37,7 +37,7 @@ export default tseslint.config(
           ["^node:"],
           ["^\\u0000"],
           ["^@?\\w"],
-          ["^@auth", "^@media", "^@platform/", "^@entrypoints/", "^@bootstrap/"],
+          ["^@auth", "^@media", "^@platform/", "^@bootstrap/"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$"],
           ["^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"]
         ]
@@ -56,13 +56,19 @@ export default tseslint.config(
         }
       },
       "boundaries/elements": [
+        { type: "auth-composition", pattern: "src/modules/auth/auth.module.ts", mode: "full" },
+        { type: "auth-composition", pattern: "src/modules/auth/auth.module.spec.ts", mode: "full" },
+        { type: "auth-http-entrypoint", pattern: "src/modules/auth/entrypoints/http/**/*.ts", mode: "full" },
         { type: "auth-public", pattern: "src/modules/auth/public/**/*.ts", mode: "full" },
         { type: "auth-internal", pattern: "src/modules/auth/**/*.ts", mode: "full" },
+        { type: "media-composition", pattern: "src/modules/media/media.module.ts", mode: "full" },
+        { type: "media-composition", pattern: "src/modules/media/media.module.spec.ts", mode: "full" },
+        { type: "media-http-entrypoint", pattern: "src/modules/media/entrypoints/http/**/*.ts", mode: "full" },
+        { type: "media-scheduler-entrypoint", pattern: "src/modules/media/entrypoints/scheduler/**/*.ts", mode: "full" },
         { type: "media-public", pattern: "src/modules/media/public/**/*.ts", mode: "full" },
         { type: "media-internal", pattern: "src/modules/media/**/*.ts", mode: "full" },
         { type: "shared-http", pattern: "src/shared/http/**/*.ts", mode: "full" },
         { type: "shared-scheduling", pattern: "src/shared/scheduling/**/*.ts", mode: "full" },
-        { type: "entrypoint", pattern: "src/entrypoints/**/*.ts", mode: "full" },
         { type: "platform", pattern: "src/platform/**/*.ts", mode: "full" },
         { type: "bootstrap", pattern: "src/bootstrap/**/*.ts", mode: "full" }
       ]
@@ -73,15 +79,19 @@ export default tseslint.config(
       "boundaries/element-types": ["error", {
         default: "disallow",
         rules: [
+          { from: "auth-composition", allow: ["auth-composition", "auth-internal", "auth-http-entrypoint", "auth-public", "platform", "shared-http"] },
+          { from: "auth-http-entrypoint", allow: ["auth-http-entrypoint", "auth-public", "shared-http"] },
           { from: "auth-public", allow: ["auth-public"] },
-          { from: "auth-internal", allow: ["auth-internal", "auth-public", "platform", "shared-http"] },
+          { from: "auth-internal", allow: ["auth-composition", "auth-internal", "auth-public", "platform"] },
+          { from: "media-composition", allow: ["media-composition", "media-internal", "media-http-entrypoint", "media-scheduler-entrypoint", "media-public", "platform", "shared-http", "shared-scheduling"] },
+          { from: "media-http-entrypoint", allow: ["media-http-entrypoint", "media-public", "shared-http"] },
+          { from: "media-scheduler-entrypoint", allow: ["media-scheduler-entrypoint", "media-public", "shared-scheduling"] },
           { from: "media-public", allow: ["media-public"] },
-          { from: "media-internal", allow: ["media-internal", "media-public", "platform", "shared-http", "shared-scheduling"] },
+          { from: "media-internal", allow: ["media-composition", "media-internal", "media-public", "platform"] },
           { from: "shared-http", allow: ["shared-http"] },
           { from: "shared-scheduling", allow: ["shared-scheduling"] },
-          { from: "entrypoint", allow: ["entrypoint", "auth-public", "media-public", "platform", "shared-http", "shared-scheduling"] },
           { from: "platform", allow: ["platform"] },
-          { from: "bootstrap", allow: ["bootstrap", "entrypoint", "auth-public", "media-public", "platform", "auth-internal", "media-internal", "shared-http", "shared-scheduling"] }
+          { from: "bootstrap", allow: ["bootstrap", "auth-composition", "auth-internal", "auth-public", "media-composition", "media-internal", "media-public", "platform", "shared-http", "shared-scheduling"] }
         ]
       }]
     }

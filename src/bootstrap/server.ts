@@ -5,8 +5,7 @@ import "dotenv/config";
 import cron from "node-cron";
 
 import { loadEnv } from "@platform/config/index.js";
-
-import { createContainer } from "./container.js";
+import { createContainer } from "@bootstrap/container.js";
 
 async function main(): Promise<void> {
   const env = loadEnv();

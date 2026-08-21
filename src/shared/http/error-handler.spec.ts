@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 
-import { createErrorHandler } from "./error-handler.js";
+import { createErrorHandler } from "@shared/http/error-handler.js";
 
 function responseDouble() {
   const response = {

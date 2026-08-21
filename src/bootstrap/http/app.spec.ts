@@ -2,10 +2,9 @@ import type { RequestHandler } from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthModule } from "../../modules/auth/auth.module.js";
-import type { MediaModule } from "../../modules/media/media.module.js";
-
-import { createHttpApp } from "./app.js";
+import type { AuthModule } from "@auth/auth.module.js";
+import type { MediaModule } from "@media/media.module.js";
+import { createHttpApp } from "@bootstrap/http/app.js";
 
 const respond = (status: number, body: object): RequestHandler => {
   return (_request, response) => {

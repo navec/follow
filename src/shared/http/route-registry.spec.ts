@@ -2,8 +2,8 @@ import express, { type RequestHandler } from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import type { HttpModuleDefinition } from "./contracts/http-module-definition.js";
-import { flattenHttpEndpoints, registerHttpModules } from "./route-registry.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import { flattenHttpEndpoints, registerHttpModules } from "@shared/http/route-registry.js";
 
 const noContent: RequestHandler = (_request, response) => {
   response.status(204).end();

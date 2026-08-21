@@ -3,7 +3,7 @@ import { type Application, type RequestHandler, Router } from "express";
 import type {
   HttpMethod,
   HttpModuleDefinition,
-} from "./contracts/http-module-definition.js";
+} from "@shared/http/contracts/http-module-definition.js";
 
 export interface FlatHttpEndpoint {
   method: HttpMethod;

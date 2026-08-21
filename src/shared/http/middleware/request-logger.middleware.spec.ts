@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createRequestLoggerMiddleware,
   type RequestLogger,
-} from "./request-logger.middleware.js";
+} from "@shared/http/middleware/request-logger.middleware.js";
 
 describe("createRequestLoggerMiddleware", () => {
   it("logs method, path, status, duration, ip and user-agent", async () => {

@@ -1,19 +1,19 @@
 import express, { type Express, type RequestHandler } from "express";
 
-import type { AuthModule } from "../../modules/auth/auth.module.js";
-import type { MediaModule } from "../../modules/media/media.module.js";
-import type { HttpModuleDefinition } from "../../shared/http/contracts/http-module-definition.js";
-import { createErrorHandler } from "../../shared/http/error-handler.js";
-import { createAuthenticationMiddleware } from "../../shared/http/middleware/authentication.middleware.js";
+import type { AuthModule } from "@auth/auth.module.js";
+import type { MediaModule } from "@media/media.module.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import { createErrorHandler } from "@shared/http/error-handler.js";
+import { createAuthenticationMiddleware } from "@shared/http/middleware/authentication.middleware.js";
 import {
   createRequestLoggerMiddleware,
   type RequestLogger,
-} from "../../shared/http/middleware/request-logger.middleware.js";
+} from "@shared/http/middleware/request-logger.middleware.js";
 import {
   type FlatHttpEndpoint,
   flattenHttpEndpoints,
   registerHttpModules,
-} from "../../shared/http/route-registry.js";
+} from "@shared/http/route-registry.js";
 
 interface HttpLogger extends RequestLogger {
   error(bindings: object, message: string): void;

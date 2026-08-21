@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { envSchema } from "./schema.js";
+import { envSchema } from "@platform/config/schema.js";
 
 const requiredEnv = {
   DATABASE_URL: "postgres://localhost/follow",

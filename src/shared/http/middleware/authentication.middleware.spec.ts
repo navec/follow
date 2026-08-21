@@ -1,12 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthenticatedRequest } from "../context/authenticated-request.js";
-
+import type { AuthenticatedRequest } from "@shared/http/context/authenticated-request.js";
 import {
   createAuthenticationMiddleware,
   type ResolveIdentity,
-} from "./authentication.middleware.js";
+} from "@shared/http/middleware/authentication.middleware.js";
 
 function requestWithAuthorization(authorization?: string): Request {
   return {

@@ -3,7 +3,7 @@ import type { NextFunction, RequestHandler, Response } from "express";
 import type {
   AuthenticatedHttpIdentity,
   AuthenticatedRequest,
-} from "../context/authenticated-request.js";
+} from "@shared/http/context/authenticated-request.js";
 
 export type ResolveIdentity = (
   accessToken: string,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMigrationStatuses } from "./migration-status.js";
+import { buildMigrationStatuses } from "@platform/database/migration-status.js";
 
 describe("buildMigrationStatuses", () => {
   it("marks discovered module migrations as applied or pending", () => {

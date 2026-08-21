@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AppEnv } from "@platform/config/index.js";
-
-import { createContainer } from "./container.js";
+import { createContainer } from "@bootstrap/container.js";
 
 const testEnv: AppEnv = {
   NODE_ENV: "test",

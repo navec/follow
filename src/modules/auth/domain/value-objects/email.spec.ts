@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Email } from "./email.js";
+import { Email } from "@auth/domain/value-objects/email.js";
 
 describe("Email", () => {
   it("normalizes and stores a valid email", () => {

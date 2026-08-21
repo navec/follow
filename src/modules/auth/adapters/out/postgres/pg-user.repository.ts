@@ -5,9 +5,9 @@ import type { Pool, PoolClient } from "pg";
 import type {
   CreateUserRecord,
   UserRepositoryPort,
-} from "../../../application/ports/out/user-repository.port.js";
-import type { User } from "../../../domain/entities/user.js";
-import { AuthConflictError } from "../../../domain/errors/auth-errors.js";
+} from "@auth/application/ports/out/user-repository.port.js";
+import type { User } from "@auth/domain/entities/user.js";
+import { AuthConflictError } from "@auth/domain/errors/auth-errors.js";
 
 interface UserRow {
   id: string;

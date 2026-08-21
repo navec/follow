@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { User } from "../../domain/entities/user.js";
-import { AuthUnauthorizedError } from "../../domain/errors/auth-errors.js";
-import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
-
-import { GetCurrentUserUseCase } from "./get-current-user.use-case.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { GetCurrentUserUseCase } from "@auth/application/use-cases/get-current-user.use-case.js";
+import type { User } from "@auth/domain/entities/user.js";
+import { AuthUnauthorizedError } from "@auth/domain/errors/auth-errors.js";
 
 class InMemoryUserRepository implements UserRepositoryPort {
   private readonly users = new Map<string, User>();

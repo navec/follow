@@ -1,11 +1,11 @@
-import { toPublicUser } from "../../domain/entities/user.js";
-import { AuthInvalidCredentialsError } from "../../domain/errors/auth-errors.js";
-import { Email } from "../../domain/value-objects/email.js";
-import type { AuthResponseDto } from "../dto/auth-response.dto.js";
-import type { LoginInputDto } from "../dto/login.dto.js";
-import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";
-import type { TokenServicePort } from "../ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
+import type { AuthResponseDto } from "@auth/application/dto/auth-response.dto.js";
+import type { LoginInputDto } from "@auth/application/dto/login.dto.js";
+import type { PasswordHasherPort } from "@auth/application/ports/out/password-hasher.port.js";
+import type { TokenServicePort } from "@auth/application/ports/out/token-service.port.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { toPublicUser } from "@auth/domain/entities/user.js";
+import { AuthInvalidCredentialsError } from "@auth/domain/errors/auth-errors.js";
+import { Email } from "@auth/domain/value-objects/email.js";
 
 export class LoginUserUseCase {
   constructor(

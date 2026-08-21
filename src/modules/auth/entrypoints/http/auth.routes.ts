@@ -1,8 +1,7 @@
-import type { HttpModuleDefinition } from "../../../../shared/http/contracts/http-module-definition.js";
-import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
-import type { AuthApi } from "../../public/auth-api.js";
-
-import { AuthController } from "./auth.controller.js";
+import { AuthController } from "@auth/entrypoints/http/auth.controller.js";
+import type { AuthApi } from "@auth/public/auth-api.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 interface AuthHttpDependencies {
   api: AuthApi;

@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthConflictError } from "../../../domain/errors/auth-errors.js";
-
-import { PgUserRepository } from "./pg-user.repository.js";
+import { PgUserRepository } from "@auth/adapters/out/postgres/pg-user.repository.js";
+import { AuthConflictError } from "@auth/domain/errors/auth-errors.js";
 
 describe("PgUserRepository", () => {
   it("maps duplicate email violations to AuthConflictError", async () => {

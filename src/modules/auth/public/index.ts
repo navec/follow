@@ -5,5 +5,5 @@ export type {
   LoginInput,
   PublicUser,
   RegisterInput,
-} from "./auth-api.js";
-export { AuthUnauthorizedError } from "./auth-errors.js";
+} from "@auth/public/auth-api.js";
+export { AuthUnauthorizedError } from "@auth/public/auth-errors.js";

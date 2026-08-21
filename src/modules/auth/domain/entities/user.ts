@@ -1,5 +1,5 @@
-import type { Permission } from "../value-objects/permission.js";
-import type { Role } from "../value-objects/role.js";
+import type { Permission } from "@auth/domain/value-objects/permission.js";
+import type { Role } from "@auth/domain/value-objects/role.js";
 
 export interface User {
   id: string;

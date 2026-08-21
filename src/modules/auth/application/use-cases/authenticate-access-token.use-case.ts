@@ -1,6 +1,6 @@
-import { AuthUnauthorizedError } from "../../domain/errors/auth-errors.js";
-import type { TokenServicePort } from "../ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
+import type { TokenServicePort } from "@auth/application/ports/out/token-service.port.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { AuthUnauthorizedError } from "@auth/domain/errors/auth-errors.js";
 
 export class AuthenticateAccessTokenUseCase {
   constructor(

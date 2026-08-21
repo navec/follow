@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { JwtTokenService } from "./jwt-token-service.js";
+import { JwtTokenService } from "@auth/adapters/out/security/jwt-token-service.js";
 
 describe("JwtTokenService", () => {
   it("signs and verifies an access token when payload contains sub", () => {

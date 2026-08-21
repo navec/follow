@@ -1,4 +1,4 @@
-import type { PublicUser } from "../../domain/entities/user.js";
+import type { PublicUser } from "@auth/domain/entities/user.js";
 
 export interface AuthResponseDto {
   user: PublicUser;

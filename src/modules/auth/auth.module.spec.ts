@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { BodyValidator } from "../../shared/http/validation/validator.js";
-
-import { createAuthModule } from "./auth.module.js";
+import { createAuthModule } from "@auth/auth.module.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 describe("createAuthModule", () => {
   it("exposes its public API and declarative HTTP contribution", () => {

@@ -1,7 +1,7 @@
-import { toPublicUser } from "../../domain/entities/user.js";
-import { AuthUnauthorizedError } from "../../domain/errors/auth-errors.js";
-import type { CurrentUserResponseDto } from "../dto/auth-response.dto.js";
-import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
+import type { CurrentUserResponseDto } from "@auth/application/dto/auth-response.dto.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { toPublicUser } from "@auth/domain/entities/user.js";
+import { AuthUnauthorizedError } from "@auth/domain/errors/auth-errors.js";
 
 export class GetCurrentUserUseCase {
   constructor(private readonly userRepository: UserRepositoryPort) {}

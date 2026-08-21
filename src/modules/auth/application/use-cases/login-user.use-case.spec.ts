@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { User } from "../../domain/entities/user.js";
-import { AuthInvalidCredentialsError } from "../../domain/errors/auth-errors.js";
-import type { PasswordHasherPort } from "../ports/out/password-hasher.port.js";
-import type { TokenServicePort } from "../ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "../ports/out/user-repository.port.js";
-
-import { LoginUserUseCase } from "./login-user.use-case.js";
+import type { PasswordHasherPort } from "@auth/application/ports/out/password-hasher.port.js";
+import type { TokenServicePort } from "@auth/application/ports/out/token-service.port.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { LoginUserUseCase } from "@auth/application/use-cases/login-user.use-case.js";
+import type { User } from "@auth/domain/entities/user.js";
+import { AuthInvalidCredentialsError } from "@auth/domain/errors/auth-errors.js";
 
 class InMemoryUserRepository implements UserRepositoryPort {
   private readonly users = new Map<string, User>();

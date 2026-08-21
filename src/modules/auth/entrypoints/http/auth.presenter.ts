@@ -1,7 +1,7 @@
 import type {
   AuthenticatedIdentity,
   AuthResult,
-} from "../../public/auth-api.js";
+} from "@auth/public/auth-api.js";
 
 export const authPresenter = {
   auth(data: AuthResult) {

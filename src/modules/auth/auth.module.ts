@@ -1,11 +1,11 @@
-import type { PasswordHasherPort } from "./application/ports/out/password-hasher.port.js";
-import type { TokenServicePort } from "./application/ports/out/token-service.port.js";
-import type { UserRepositoryPort } from "./application/ports/out/user-repository.port.js";
-import { AuthenticateAccessTokenUseCase } from "./application/use-cases/authenticate-access-token.use-case.js";
-import { LoginUserUseCase } from "./application/use-cases/login-user.use-case.js";
-import { RegisterUserUseCase } from "./application/use-cases/register-user.use-case.js";
-import { createAuthHttpDefinition } from "./entrypoints/http/auth.routes.js";
-import type { AuthApi } from "./public/auth-api.js";
+import type { PasswordHasherPort } from "@auth/application/ports/out/password-hasher.port.js";
+import type { TokenServicePort } from "@auth/application/ports/out/token-service.port.js";
+import type { UserRepositoryPort } from "@auth/application/ports/out/user-repository.port.js";
+import { AuthenticateAccessTokenUseCase } from "@auth/application/use-cases/authenticate-access-token.use-case.js";
+import { LoginUserUseCase } from "@auth/application/use-cases/login-user.use-case.js";
+import { RegisterUserUseCase } from "@auth/application/use-cases/register-user.use-case.js";
+import { createAuthHttpDefinition } from "@auth/entrypoints/http/auth.routes.js";
+import type { AuthApi } from "@auth/public/auth-api.js";
 
 interface AuthModuleDependencies {
   userRepository: UserRepositoryPort;
@@ -51,5 +51,5 @@ export function createAuthModule({
     http: createAuthHttpDefinition({ api, bodyValidator: http.bodyValidator }),
   };
 }
-import type { HttpModuleDefinition } from "../../shared/http/contracts/http-module-definition.js";
-import type { BodyValidator } from "../../shared/http/validation/validator.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";

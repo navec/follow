@@ -2,12 +2,11 @@ import express, { type RequestHandler } from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthenticatedRequest } from "../../../../shared/http/context/authenticated-request.js";
-import { registerHttpModules } from "../../../../shared/http/route-registry.js";
-import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
-import type { AuthApi, AuthenticatedIdentity } from "../../public/auth-api.js";
-
-import { createAuthHttpDefinition } from "./auth.routes.js";
+import { createAuthHttpDefinition } from "@auth/entrypoints/http/auth.routes.js";
+import type { AuthApi, AuthenticatedIdentity } from "@auth/public/auth-api.js";
+import type { AuthenticatedRequest } from "@shared/http/context/authenticated-request.js";
+import { registerHttpModules } from "@shared/http/route-registry.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 describe("Auth HTTP contribution", () => {
   it("preserves register, login, and current-user response contracts", async () => {

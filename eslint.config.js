@@ -3,6 +3,11 @@ import boundaries from "eslint-plugin-boundaries";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
+const relativeImportPatterns = [{
+  group: ["./*", "../*"],
+  message: "Use an absolute project alias instead of a relative import."
+}];
+
 export default tseslint.config(
   {
     ignores: ["dist/**", "coverage/**", "node_modules/**", ".worktrees/**"],
@@ -43,6 +48,14 @@ export default tseslint.config(
         ]
       }],
       "simple-import-sort/exports": "error"
+    }
+  },
+  {
+    files: ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.{ts,mjs}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: relativeImportPatterns
+      }]
     }
   },
   {
@@ -103,14 +116,17 @@ export default tseslint.config(
         paths: [{
           name: "express",
           message: "Express is only allowed in module HTTP entrypoints."
-        }]
+        }],
+        patterns: relativeImportPatterns
       }]
     }
   },
   {
     files: ["src/modules/*/entrypoints/http/**/*.ts"],
     rules: {
-      "no-restricted-imports": "off"
+      "no-restricted-imports": ["error", {
+        patterns: relativeImportPatterns
+      }]
     }
   },
   {
@@ -122,7 +138,9 @@ export default tseslint.config(
   {
     files: ["tests/**/*.ts"],
     rules: {
-      "no-restricted-imports": "off"
+      "no-restricted-imports": ["error", {
+        patterns: relativeImportPatterns
+      }]
     }
   },
   {

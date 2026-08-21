@@ -183,9 +183,14 @@ Note: l'image utilise un `Dockerfile` multi-stage (`node:24-bookworm-slim`) et e
   puis gestion du cycle de vie
 - `tests/integration` : tests d'intégration HTTP/DB
 
+Les imports de projet utilisent les sept alias `@auth/*`, `@media/*`,
+`@shared/*`, `@platform/*`, `@bootstrap/*`, `@tests/*` et `@scripts/*`.
+ESLint rejette les imports relatifs dans `src`, `tests` et `scripts`.
+
 Auth et Media ne s’importent jamais mutuellement. Un consommateur externe utilise
-uniquement `@auth` ou `@media`; les détails `domain`, `application` et `adapters`
-restent internes au module. ESLint vérifie ces frontières.
+uniquement leurs contrats sous `@auth/public/*` ou `@media/public/*`; les détails
+`domain`, `application` et `adapters` restent internes au module. ESLint vérifie
+ces frontières.
 
 ### Flux HTTP protégé
 

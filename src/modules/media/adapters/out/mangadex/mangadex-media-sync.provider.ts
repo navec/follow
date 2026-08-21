@@ -1,6 +1,6 @@
-import type { SyncRequest } from "../../../application/dto/sync-request.dto.js";
-import type { MediaSyncProviderPort } from "../../../application/ports/out/media-sync-provider.port.js";
-import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
+import type { SyncRequest } from "@media/application/dto/sync-request.dto.js";
+import type { MediaSyncProviderPort } from "@media/application/ports/out/media-sync-provider.port.js";
+import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
 
 type MangadexWorkSyncRequest = {
   provider: "mangadex";
@@ -31,15 +31,21 @@ export class MangadexMediaSyncProvider implements MediaSyncProviderPort {
     return provider === "mangadex";
   }
 
-  async fetch(request: SyncRequest): Promise<ReadonlyArray<NormalizedWorkAggregate>> {
+  async fetch(
+    request: SyncRequest,
+  ): Promise<ReadonlyArray<NormalizedWorkAggregate>> {
     if (request.provider !== "mangadex" || request.params.target !== "work") {
-      throw new Error("MangaDex provider currently supports only targeted work sync");
+      throw new Error(
+        "MangaDex provider currently supports only targeted work sync",
+      );
     }
 
-    const payload = await this.client.getWorkOrFeed(request as MangadexWorkSyncRequest);
+    const payload = await this.client.getWorkOrFeed(
+      request as MangadexWorkSyncRequest,
+    );
     const year = payload.data.attributes?.year;
     const work: NormalizedWorkAggregate["work"] = {
-      type: request.params.type
+      type: request.params.type,
     };
     if (year) {
       work.releaseDate = `${year}-01-01`;
@@ -49,10 +55,10 @@ export class MangadexMediaSyncProvider implements MediaSyncProviderPort {
       {
         source: {
           provider: "mangadex",
-          sourceValue: payload.data.id
+          sourceValue: payload.data.id,
         },
-        work
-      }
+        work,
+      },
     ];
   }
 }

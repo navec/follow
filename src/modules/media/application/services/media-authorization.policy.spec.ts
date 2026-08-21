@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MediaAuthorizationPolicy } from "./media-authorization.policy.js";
+import { MediaAuthorizationPolicy } from "@media/application/services/media-authorization.policy.js";
 
 describe("MediaAuthorizationPolicy", () => {
   const policy = new MediaAuthorizationPolicy();

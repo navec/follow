@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { MediaApi, SyncResult } from "../../public/media-api.js";
-
-import { createMediaSyncJobs } from "./media-sync.jobs.js";
+import { createMediaSyncJobs } from "@media/entrypoints/scheduler/media-sync.jobs.js";
+import type { MediaApi, SyncResult } from "@media/public/media-api.js";
 
 describe("Media sync jobs", () => {
   it("declares a configured feed job and invokes MediaApi", async () => {

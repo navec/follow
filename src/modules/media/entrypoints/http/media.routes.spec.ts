@@ -2,12 +2,11 @@ import express, { type RequestHandler } from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthenticatedRequest } from "../../../../shared/http/context/authenticated-request.js";
-import { registerHttpModules } from "../../../../shared/http/route-registry.js";
-import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
-import type { MediaApi, SyncResult } from "../../public/media-api.js";
-
-import { createMediaHttpDefinition } from "./media.routes.js";
+import { createMediaHttpDefinition } from "@media/entrypoints/http/media.routes.js";
+import type { MediaApi, SyncResult } from "@media/public/media-api.js";
+import type { AuthenticatedRequest } from "@shared/http/context/authenticated-request.js";
+import { registerHttpModules } from "@shared/http/route-registry.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 describe("Media HTTP contribution", () => {
   it("declares authenticated sync and preserves its accepted response", async () => {

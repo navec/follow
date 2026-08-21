@@ -1,6 +1,6 @@
-import type { SyncRequest } from "../../../application/dto/sync-request.dto.js";
-import type { MediaSyncProviderPort } from "../../../application/ports/out/media-sync-provider.port.js";
-import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
+import type { SyncRequest } from "@media/application/dto/sync-request.dto.js";
+import type { MediaSyncProviderPort } from "@media/application/ports/out/media-sync-provider.port.js";
+import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
 
 type TmdbWorkSyncRequest = {
   provider: "tmdb";
@@ -31,14 +31,18 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
     return provider === "tmdb";
   }
 
-  async fetch(request: SyncRequest): Promise<ReadonlyArray<NormalizedWorkAggregate>> {
+  async fetch(
+    request: SyncRequest,
+  ): Promise<ReadonlyArray<NormalizedWorkAggregate>> {
     if (request.provider !== "tmdb") {
       throw new Error("TMDB provider supports only tmdb requests");
     }
 
     if (request.params.target === "work") {
       const payload = await this.client.getWork(request as TmdbWorkSyncRequest);
-      return [this.toAggregate(payload, this.normalizeWorkType(request.params.type))];
+      return [
+        this.toAggregate(payload, this.normalizeWorkType(request.params.type)),
+      ];
     }
 
     if (request.params.target === "feed" && request.params.feed === "popular") {

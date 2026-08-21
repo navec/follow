@@ -1,8 +1,7 @@
-import type { HttpModuleDefinition } from "../../../../shared/http/contracts/http-module-definition.js";
-import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
-import type { MediaApi } from "../../public/media-api.js";
-
-import { MediaSyncController } from "./media-sync.controller.js";
+import { MediaSyncController } from "@media/entrypoints/http/media-sync.controller.js";
+import type { MediaApi } from "@media/public/media-api.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 interface MediaHttpDependencies {
   api: MediaApi;

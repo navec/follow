@@ -1,5 +1,8 @@
-import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
-import type { SyncProvider,SyncRequest } from "../../dto/sync-request.dto.js";
+import type {
+  SyncProvider,
+  SyncRequest,
+} from "@media/application/dto/sync-request.dto.js";
+import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
 
 export interface MediaSyncProviderPort {
   supports(provider: SyncProvider): boolean;

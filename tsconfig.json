@@ -5,8 +5,9 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@auth": ["src/modules/auth/public/index.ts"],
-      "@media": ["src/modules/media/public/index.ts"],
+      "@auth/*": ["src/modules/auth/*"],
+      "@media/*": ["src/modules/media/*"],
+      "@shared/*": ["src/shared/*"],
       "@platform/*": ["src/platform/*"],
       "@bootstrap/*": ["src/bootstrap/*"]
     },

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { TmdbHttpClient } from "./tmdb-http.client.js";
+import { TmdbHttpClient } from "@media/adapters/out/tmdb/tmdb-http.client.js";
 
 describe("TmdbHttpClient", () => {
   it("calls movie details with bearer auth and localized params", async () => {

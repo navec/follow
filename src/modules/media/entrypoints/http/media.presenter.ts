@@ -1,4 +1,4 @@
-import type { SyncResult } from "../../public/media-api.js";
+import type { SyncResult } from "@media/public/media-api.js";
 
 export const mediaPresenter = {
   sync(result: SyncResult) {

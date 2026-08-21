@@ -2,7 +2,7 @@ import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media";
+import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media/public/index.js";
 import { createContainer } from "@bootstrap/container.js";
 
 import { createHttpApp } from "../../../../src/bootstrap/http/app.js";

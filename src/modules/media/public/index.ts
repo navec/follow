@@ -5,5 +5,5 @@ export type {
   SyncMediaCommand,
   SyncProvider,
   SyncResult,
-} from "./media-api.js";
-export { MediaForbiddenError } from "./media-errors.js";
+} from "@media/public/media-api.js";
+export { MediaForbiddenError } from "@media/public/media-errors.js";

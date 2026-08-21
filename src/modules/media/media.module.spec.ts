@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { BodyValidator } from "../../shared/http/validation/validator.js";
-
-import type { MediaSyncProviderPort } from "./application/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "./application/ports/out/media-sync-repository.port.js";
-import { createMediaModule } from "./media.module.js";
+import type { MediaSyncProviderPort } from "@media/application/ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "@media/application/ports/out/media-sync-repository.port.js";
+import { createMediaModule } from "@media/media.module.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 describe("createMediaModule", () => {
   it("exposes a public facade that delegates media synchronization", async () => {

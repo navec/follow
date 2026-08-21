@@ -1,11 +1,10 @@
 import type { NextFunction, Response } from "express";
 
-import type { AuthenticatedRequest } from "../../../../shared/http/context/authenticated-request.js";
-import type { BodyValidator } from "../../../../shared/http/validation/validator.js";
-import type { MediaActor, MediaApi } from "../../public/media-api.js";
-
-import { mediaPresenter } from "./media.presenter.js";
-import { mediaSyncSchema } from "./media-sync.schemas.js";
+import { mediaPresenter } from "@media/entrypoints/http/media.presenter.js";
+import { mediaSyncSchema } from "@media/entrypoints/http/media-sync.schemas.js";
+import type { MediaActor, MediaApi } from "@media/public/media-api.js";
+import type { AuthenticatedRequest } from "@shared/http/context/authenticated-request.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
 
 interface MediaSyncControllerDeps {
   mediaApi: MediaApi;
@@ -18,7 +17,7 @@ export class MediaSyncController {
   sync = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.identity) {

@@ -1,10 +1,10 @@
-import type { MediaSyncProviderPort } from "./application/ports/out/media-sync-provider.port.js";
-import type { MediaSyncRepositoryPort } from "./application/ports/out/media-sync-repository.port.js";
-import { MediaAuthorizationPolicy } from "./application/services/media-authorization.policy.js";
-import { SyncMediaUseCase } from "./application/use-cases/sync-media.use-case.js";
-import { createMediaHttpDefinition } from "./entrypoints/http/media.routes.js";
-import { createMediaSyncJobs } from "./entrypoints/scheduler/media-sync.jobs.js";
-import type { MediaApi } from "./public/media-api.js";
+import type { MediaSyncProviderPort } from "@media/application/ports/out/media-sync-provider.port.js";
+import type { MediaSyncRepositoryPort } from "@media/application/ports/out/media-sync-repository.port.js";
+import { MediaAuthorizationPolicy } from "@media/application/services/media-authorization.policy.js";
+import { SyncMediaUseCase } from "@media/application/use-cases/sync-media.use-case.js";
+import { createMediaHttpDefinition } from "@media/entrypoints/http/media.routes.js";
+import { createMediaSyncJobs } from "@media/entrypoints/scheduler/media-sync.jobs.js";
+import type { MediaApi } from "@media/public/media-api.js";
 
 interface MediaModuleDependencies {
   providers: ReadonlyArray<MediaSyncProviderPort>;
@@ -44,6 +44,6 @@ export function createMediaModule({
     }),
   };
 }
-import type { HttpModuleDefinition } from "../../shared/http/contracts/http-module-definition.js";
-import type { BodyValidator } from "../../shared/http/validation/validator.js";
-import type { ScheduledJobDefinition } from "../../shared/scheduling/scheduled-job-definition.js";
+import type { HttpModuleDefinition } from "@shared/http/contracts/http-module-definition.js";
+import type { BodyValidator } from "@shared/http/validation/validator.js";
+import type { ScheduledJobDefinition } from "@shared/scheduling/scheduled-job-definition.js";

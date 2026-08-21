@@ -37,7 +37,7 @@ export default tseslint.config(
           ["^node:"],
           ["^\\u0000"],
           ["^@?\\w"],
-          ["^@auth", "^@media", "^@platform/", "^@bootstrap/"],
+          ["^@auth/", "^@media/", "^@platform/", "^@bootstrap/", "^@shared/"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$"],
           ["^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"]
         ]

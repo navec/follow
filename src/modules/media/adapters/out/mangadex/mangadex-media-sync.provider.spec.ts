@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SyncRequest } from "../../../application/dto/sync-request.dto.js";
-
-import { MangadexMediaSyncProvider } from "./mangadex-media-sync.provider.js";
+import { MangadexMediaSyncProvider } from "@media/adapters/out/mangadex/mangadex-media-sync.provider.js";
+import type { SyncRequest } from "@media/application/dto/sync-request.dto.js";
 
 describe("MangadexMediaSyncProvider", () => {
   it("maps a MangaDex work response into a normalized aggregate", async () => {
@@ -11,18 +10,18 @@ describe("MangadexMediaSyncProvider", () => {
       params: {
         target: "work",
         externalId: "abc-123",
-        type: "manga"
-      }
+        type: "manga",
+      },
     };
     const client = {
       getWorkOrFeed: vi.fn().mockResolvedValue({
         data: {
           id: "abc-123",
           attributes: {
-            year: 2024
-          }
-        }
-      })
+            year: 2024,
+          },
+        },
+      }),
     };
     const provider = new MangadexMediaSyncProvider(client);
 
@@ -31,12 +30,12 @@ describe("MangadexMediaSyncProvider", () => {
     expect(result[0]).toEqual({
       source: {
         provider: "mangadex",
-        sourceValue: "abc-123"
+        sourceValue: "abc-123",
       },
       work: {
         type: "manga",
-        releaseDate: "2024-01-01"
-      }
+        releaseDate: "2024-01-01",
+      },
     });
   });
 });

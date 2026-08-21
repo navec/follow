@@ -1,5 +1,5 @@
-import type { ScheduledJobDefinition } from "../../../../shared/scheduling/scheduled-job-definition.js";
-import type { MediaActor, MediaApi } from "../../public/media-api.js";
+import type { MediaActor, MediaApi } from "@media/public/media-api.js";
+import type { ScheduledJobDefinition } from "@shared/scheduling/scheduled-job-definition.js";
 
 interface MediaSyncJobsDependencies {
   api: MediaApi;

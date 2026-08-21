@@ -1,8 +1,8 @@
 import type { Pool, PoolClient } from "pg";
 
-import type { SyncResult } from "../../../application/dto/sync-result.dto.js";
-import type { MediaSyncRepositoryPort } from "../../../application/ports/out/media-sync-repository.port.js";
-import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
+import type { SyncResult } from "@media/application/dto/sync-result.dto.js";
+import type { MediaSyncRepositoryPort } from "@media/application/ports/out/media-sync-repository.port.js";
+import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
 
 interface IdRow {
   id: number;
@@ -16,7 +16,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async upsertMany(
-    aggregates: ReadonlyArray<NormalizedWorkAggregate>
+    aggregates: ReadonlyArray<NormalizedWorkAggregate>,
   ): Promise<SyncResult> {
     const client = await this.pool.connect();
 
@@ -27,11 +27,14 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
       let updated = 0;
 
       for (const aggregate of aggregates) {
-        const sourceId = await this.resolveSourceId(client, aggregate.source.provider);
+        const sourceId = await this.resolveSourceId(
+          client,
+          aggregate.source.provider,
+        );
         const existingWorkId = await this.findWorkId(
           client,
           sourceId,
-          aggregate.source.sourceValue
+          aggregate.source.sourceValue,
         );
 
         if (existingWorkId) {
@@ -40,7 +43,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
              SET type = $2,
                  updated_at = now()
              WHERE id = $1`,
-            [existingWorkId, aggregate.work.type]
+            [existingWorkId, aggregate.work.type],
           );
           updated += 1;
           continue;
@@ -52,7 +55,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
            VALUES ($1, $2, $3)
            ON CONFLICT (source_id, source_value)
            DO NOTHING`,
-          [sourceId, workId, aggregate.source.sourceValue]
+          [sourceId, workId, aggregate.source.sourceValue],
         );
         created += 1;
       }
@@ -63,7 +66,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
         created,
         updated,
         skipped: 0,
-        errors: []
+        errors: [],
       };
     } catch (error) {
       await client.query("ROLLBACK");
@@ -73,10 +76,13 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     }
   }
 
-  private async resolveSourceId(client: PoolClient, provider: string): Promise<number> {
+  private async resolveSourceId(
+    client: PoolClient,
+    provider: string,
+  ): Promise<number> {
     const existing = await client.query<IdRow>(
       `SELECT id FROM sources WHERE name = $1 LIMIT 1`,
-      [provider]
+      [provider],
     );
     const existingId = existing.rows[0]?.id;
     if (existingId) {
@@ -87,7 +93,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
       `INSERT INTO sources (name)
        VALUES ($1)
        RETURNING id`,
-      [provider]
+      [provider],
     );
     const insertedId = inserted.rows[0]?.id;
     if (!insertedId) {
@@ -99,14 +105,14 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
   private async findWorkId(
     client: PoolClient,
     sourceId: number,
-    sourceValue: string
+    sourceValue: string,
   ): Promise<number | null> {
     const result = await client.query<WorkIdRow>(
       `SELECT work_id
        FROM source_works
        WHERE source_id = $1 AND source_value = $2
        LIMIT 1`,
-      [sourceId, sourceValue]
+      [sourceId, sourceValue],
     );
 
     return result.rows[0]?.work_id ?? null;
@@ -114,13 +120,13 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
 
   private async createWork(
     client: PoolClient,
-    aggregate: NormalizedWorkAggregate
+    aggregate: NormalizedWorkAggregate,
   ): Promise<number> {
     const result = await client.query<IdRow>(
       `INSERT INTO works (type, release_date)
        VALUES ($1, $2)
        RETURNING id`,
-      [aggregate.work.type, aggregate.work.releaseDate ?? null]
+      [aggregate.work.type, aggregate.work.releaseDate ?? null],
     );
     const workId = result.rows[0]?.id;
     if (!workId) {

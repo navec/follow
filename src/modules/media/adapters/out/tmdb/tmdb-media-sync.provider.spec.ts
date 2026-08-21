@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SyncRequest } from "../../../application/dto/sync-request.dto.js";
-
-import { TmdbMediaSyncProvider } from "./tmdb-media-sync.provider.js";
+import { TmdbMediaSyncProvider } from "@media/adapters/out/tmdb/tmdb-media-sync.provider.js";
+import type { SyncRequest } from "@media/application/dto/sync-request.dto.js";
 
 describe("TmdbMediaSyncProvider", () => {
   it("maps a TMDB work response into a normalized aggregate", async () => {

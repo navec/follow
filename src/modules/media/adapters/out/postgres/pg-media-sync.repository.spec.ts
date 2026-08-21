@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { NormalizedWorkAggregate } from "../../../domain/models/normalized-work-aggregate.js";
-
-import { PgMediaSyncRepository } from "./pg-media-sync.repository.js";
+import { PgMediaSyncRepository } from "@media/adapters/out/postgres/pg-media-sync.repository.js";
+import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
 
 describe("PgMediaSyncRepository", () => {
   it("upserts work and source mapping without duplicating the work", async () => {
@@ -29,20 +28,20 @@ describe("PgMediaSyncRepository", () => {
 
         return { rows: [], rowCount: 0 };
       }),
-      release: vi.fn()
+      release: vi.fn(),
     };
     const pool = {
-      connect: vi.fn().mockResolvedValue(client)
+      connect: vi.fn().mockResolvedValue(client),
     };
     const repository = new PgMediaSyncRepository(pool as never);
     const aggregate: NormalizedWorkAggregate = {
       source: {
         provider: "tmdb",
-        sourceValue: "123"
+        sourceValue: "123",
       },
       work: {
-        type: "movie"
-      }
+        type: "movie",
+      },
     };
 
     const result = await repository.upsertMany([aggregate]);
@@ -51,7 +50,7 @@ describe("PgMediaSyncRepository", () => {
       created: 1,
       updated: 0,
       skipped: 0,
-      errors: []
+      errors: [],
     });
     expect(queries[0]).toBe("BEGIN");
     expect(queries).toContain("COMMIT");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { selectCoveredFiles } from "../../scripts/check-changed-files-coverage.mjs";
+import { selectCoveredFiles } from "@scripts/check-changed-files-coverage.mjs";
 
 describe("selectCoveredFiles", () => {
   it("selects only production domain and application files inside modules", () => {

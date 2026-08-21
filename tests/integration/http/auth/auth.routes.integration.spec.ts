@@ -5,8 +5,8 @@ import {
   closeIntegrationTestContext,
   createIntegrationTestContext,
   type IntegrationTestContext,
-} from "../../helpers/test-app.js";
-import { truncateTestTables } from "../../helpers/test-db.js";
+} from "@tests/integration/helpers/test-app.js";
+import { truncateTestTables } from "@tests/integration/helpers/test-db.js";
 
 describe("Auth routes integration (Express + Postgres)", () => {
   let ctx: IntegrationTestContext | undefined;

@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { Pool } from "pg";
 
-import { buildMigrationStatuses } from "../src/platform/database/migration-status.js";
+import { buildMigrationStatuses } from "@platform/database/migration-status.js";
 
 const migrationsGlob = path.resolve(
   process.cwd(),

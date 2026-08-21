@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { discoverMigrationPaths, runMigrationsWithRetry } from "./test-db.js";
+import { discoverMigrationPaths, runMigrationsWithRetry } from "@tests/integration/helpers/test-db.js";
 
 describe("runMigrationsWithRetry", () => {
   it("retries when node-pg-migrate reports an active migration lock", async () => {

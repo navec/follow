@@ -4,8 +4,7 @@ import pino from "pino";
 
 import type { AppEnv } from "@platform/config/index.js";
 import { createContainer } from "@bootstrap/container.js";
-
-import { getTestDatabaseUrl, migrateTestDbUpOnce } from "./test-db.js";
+import { getTestDatabaseUrl, migrateTestDbUpOnce } from "@tests/integration/helpers/test-db.js";
 
 export interface IntegrationTestContext {
   app: Express;

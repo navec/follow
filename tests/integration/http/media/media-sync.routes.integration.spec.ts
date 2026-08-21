@@ -2,13 +2,12 @@ import pino from "pino";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMediaHttpDefinition } from "@media/entrypoints/http/media.routes.js";
 import { type MediaApi, MediaForbiddenError, type SyncResult } from "@media/public/index.js";
 import { createContainer } from "@bootstrap/container.js";
-
-import { createHttpApp } from "../../../../src/bootstrap/http/app.js";
-import { createMediaHttpDefinition } from "../../../../src/modules/media/entrypoints/http/media.routes.js";
-import { ZodBodyValidator } from "../../../../src/shared/http/validation/zod-validator.js";
-import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "../../helpers/test-db.js";
+import { createHttpApp } from "@bootstrap/http/app.js";
+import { ZodBodyValidator } from "@shared/http/validation/zod-validator.js";
+import { getTestDatabaseUrl, migrateTestDbUpOnce, truncateTestTables } from "@tests/integration/helpers/test-db.js";
 
 describe("Media sync routes integration", () => {
   const syncMediaUseCase = {

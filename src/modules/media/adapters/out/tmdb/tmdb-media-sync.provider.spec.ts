@@ -71,6 +71,116 @@ describe("TmdbMediaSyncProvider", () => {
     });
   });
 
+  it("normalizes status and keeps every titled movie translation", async () => {
+    const client = {
+      getWork: vi.fn().mockResolvedValue({
+        id: 550,
+        status: "Released",
+        title: "Fight Club",
+        original_title: "Fight Club",
+        original_language: "en",
+        translations: {
+          translations: [
+            {
+              iso_639_1: "fr",
+              iso_3166_1: "FR",
+              data: {
+                title: "",
+                overview: "Synopsis français",
+                tagline: "Règle un",
+              },
+            },
+            {
+              iso_639_1: "en",
+              iso_3166_1: "US",
+              data: {
+                title: "",
+                overview: "English overview",
+                tagline: "Soap.",
+              },
+            },
+            {
+              iso_639_1: "es",
+              iso_3166_1: "ES",
+              data: {
+                title: "El club de la lucha",
+                overview: "Resumen",
+              },
+            },
+          ],
+        },
+      }),
+      getPopularMovies: vi.fn(),
+      getPopularTv: vi.fn(),
+    };
+    const provider = new TmdbMediaSyncProvider(client, {
+      defaultLocale: "fr-FR",
+    });
+
+    const [aggregate] = await provider.fetch({
+      provider: "tmdb",
+      params: { target: "work", externalId: 550, type: "movie" },
+    });
+
+    expect(aggregate?.work.statusCode).toBe("released");
+    expect(aggregate?.translations).toEqual([
+      {
+        localeCode: "fr-FR",
+        language: "fr",
+        title: "Fight Club",
+        summary: "Synopsis français",
+        tagline: "Règle un",
+      },
+      {
+        localeCode: "en-US",
+        language: "en",
+        title: "Fight Club",
+        summary: "English overview",
+        tagline: "Soap.",
+      },
+      {
+        localeCode: "es-ES",
+        language: "es",
+        title: "El club de la lucha",
+        summary: "Resumen",
+      },
+    ]);
+  });
+
+  it("normalizes compound statuses and skips unrelated title-less translations", async () => {
+    const client = {
+      getWork: vi.fn().mockResolvedValue({
+        id: 550,
+        status: " Post Production ",
+        title: "Fight Club",
+        original_title: "Fight Club",
+        original_language: "en",
+        translations: {
+          translations: [
+            {
+              iso_639_1: "de",
+              iso_3166_1: "DE",
+              data: { title: "", overview: "Zusammenfassung" },
+            },
+          ],
+        },
+      }),
+      getPopularMovies: vi.fn(),
+      getPopularTv: vi.fn(),
+    };
+    const provider = new TmdbMediaSyncProvider(client, {
+      defaultLocale: "fr-FR",
+    });
+
+    const [aggregate] = await provider.fetch({
+      provider: "tmdb",
+      params: { target: "work", externalId: 550, type: "movie" },
+    });
+
+    expect(aggregate?.work.statusCode).toBe("post_production");
+    expect(aggregate?.translations).toBeUndefined();
+  });
+
   it("maps targeted movie catalog details into an enriched aggregate", async () => {
     const client = {
       getWork: vi.fn().mockResolvedValue({
@@ -80,6 +190,17 @@ describe("TmdbMediaSyncProvider", () => {
         original_language: "en",
         poster_path: "/poster.jpg",
         backdrop_path: "/backdrop.jpg",
+        images: {
+          posters: [
+            { file_path: "/poster.jpg", iso_639_1: "fr" },
+            { file_path: "/poster-en.jpg", iso_639_1: "en" },
+            { file_path: "/poster.jpg", iso_639_1: "fr" },
+          ],
+          backdrops: [
+            { file_path: "/backdrop.jpg", iso_639_1: null },
+            { file_path: "/backdrop-en.jpg", iso_639_1: "en" },
+          ],
+        },
         translations: {
           translations: [
             {
@@ -113,6 +234,13 @@ describe("TmdbMediaSyncProvider", () => {
               id: 287,
               name: "Brad Pitt",
               character: "Tyler Durden",
+              profile_path: "/brad-pitt.jpg",
+            },
+            {
+              id: 819,
+              name: "Edward Norton",
+              character: "The Narrator",
+              profile_path: null,
             },
           ],
           crew: [
@@ -127,7 +255,9 @@ describe("TmdbMediaSyncProvider", () => {
         (path: string) => `https://image.tmdb.org/t/p/original${path}`,
       ),
     };
-    const provider = new TmdbMediaSyncProvider(client);
+    const provider = new TmdbMediaSyncProvider(client, {
+      defaultLocale: "fr-FR",
+    });
 
     const result = await provider.fetch({
       provider: "tmdb",
@@ -158,17 +288,38 @@ describe("TmdbMediaSyncProvider", () => {
             summary: "English overview",
             tagline: "Mischief. Mayhem. Soap.",
           },
+          {
+            localeCode: "de-DE",
+            language: "de",
+            title: "Fight Club",
+          },
         ],
         images: [
           {
             type: "poster",
             sourceValue: "/poster.jpg",
             url: "https://image.tmdb.org/t/p/original/poster.jpg",
+            localeCode: "fr-FR",
+            language: "fr",
+          },
+          {
+            type: "poster",
+            sourceValue: "/poster-en.jpg",
+            url: "https://image.tmdb.org/t/p/original/poster-en.jpg",
+            localeCode: "en-US",
+            language: "en",
           },
           {
             type: "backdrop",
             sourceValue: "/backdrop.jpg",
             url: "https://image.tmdb.org/t/p/original/backdrop.jpg",
+          },
+          {
+            type: "backdrop",
+            sourceValue: "/backdrop-en.jpg",
+            url: "https://image.tmdb.org/t/p/original/backdrop-en.jpg",
+            localeCode: "en-US",
+            language: "en",
           },
         ],
         contributors: [
@@ -177,11 +328,17 @@ describe("TmdbMediaSyncProvider", () => {
             name: "Brad Pitt",
             role: "actor",
             characterName: "Tyler Durden",
+            profileImage: {
+              type: "profile",
+              sourceValue: "/brad-pitt.jpg",
+              url: "https://image.tmdb.org/t/p/original/brad-pitt.jpg",
+            },
           },
           {
-            sourceValue: "7467",
-            name: "David Fincher",
-            role: "director",
+            sourceValue: "819",
+            name: "Edward Norton",
+            role: "actor",
+            characterName: "The Narrator",
           },
         ],
       },

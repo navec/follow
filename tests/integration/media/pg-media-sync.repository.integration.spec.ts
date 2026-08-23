@@ -73,6 +73,7 @@ describe("PgMediaSyncRepository integration", () => {
         releaseDate: "1999-10-15",
         originalTitle: "Fight Club",
         originalLanguage: "en",
+        statusCode: "released",
       },
       translations: [
         {
@@ -89,12 +90,27 @@ describe("PgMediaSyncRepository integration", () => {
           summary: "English overview",
           tagline: "Mischief. Mayhem. Soap.",
         },
+        {
+          localeCode: "es-ES",
+          language: "es",
+          title: "El club de la lucha",
+          summary: "Resumen",
+        },
       ],
       images: [
         {
           type: "poster",
-          sourceValue: "/poster.jpg",
-          url: "https://image.tmdb.org/t/p/original/poster.jpg",
+          sourceValue: "/poster-fr.jpg",
+          url: "https://image.tmdb.org/t/p/original/poster-fr.jpg",
+          localeCode: "fr-FR",
+          language: "fr",
+        },
+        {
+          type: "poster",
+          sourceValue: "/poster-en.jpg",
+          url: "https://image.tmdb.org/t/p/original/poster-en.jpg",
+          localeCode: "en-US",
+          language: "en",
         },
         {
           type: "backdrop",
@@ -108,11 +124,17 @@ describe("PgMediaSyncRepository integration", () => {
           name: "Brad Pitt",
           role: "actor",
           characterName: "Tyler Durden",
+          profileImage: {
+            type: "profile",
+            sourceValue: "/brad-pitt.jpg",
+            url: "https://image.tmdb.org/t/p/original/brad-pitt.jpg",
+          },
         },
         {
-          sourceValue: "7467",
-          name: "David Fincher",
-          role: "director",
+          sourceValue: "819",
+          name: "Edward Norton",
+          role: "actor",
+          characterName: "The Narrator",
         },
       ],
     } satisfies NormalizedWorkAggregate;
@@ -124,8 +146,10 @@ describe("PgMediaSyncRepository integration", () => {
     const work = await pool.query(
       `SELECT w.id,
               w.original_title,
-              w.original_language
+              w.original_language,
+              st.code AS status_code
        FROM works w
+       LEFT JOIN statuses st ON st.id = w.status_id
        JOIN source_works sw ON sw.work_id = w.id
        JOIN sources s ON s.id = sw.source_id
        WHERE s.name = 'tmdb' AND sw.source_value = '550'`,
@@ -139,13 +163,21 @@ describe("PgMediaSyncRepository integration", () => {
       [workId],
     );
     const images = await pool.query(
-      `SELECT i.type, i.url, si.source_value
+      `SELECT i.type, i.url, i.locale_code, si.source_value
        FROM work_images wi
        JOIN images i ON i.id = wi.image_id
        JOIN source_images si ON si.image_id = i.id
        WHERE wi.work_id = $1
-       ORDER BY i.type`,
+       ORDER BY si.source_value`,
       [workId],
+    );
+    const profileImages = await pool.query(
+      `SELECT c.name, i.type, i.url, si.source_value
+       FROM contributor_images ci
+       JOIN contributors c ON c.id = ci.contributor_id
+       JOIN images i ON i.id = ci.image_id
+       JOIN source_images si ON si.image_id = i.id
+       ORDER BY si.source_value`,
     );
     const contributors = await pool.query(
       `SELECT c.name, sc.source_value, wc.role, wc.character_name
@@ -153,13 +185,14 @@ describe("PgMediaSyncRepository integration", () => {
        JOIN contributors c ON c.id = wc.contributor_id
        JOIN source_contributors sc ON sc.contributor_id = c.id
        WHERE wc.work_id = $1
-       ORDER BY wc.role`,
+       ORDER BY sc.source_value`,
       [workId],
     );
 
     expect(work.rows[0]).toMatchObject({
       original_title: "Fight Club",
       original_language: "en",
+      status_code: "released",
     });
     expect(translations.rows).toEqual([
       {
@@ -169,13 +202,38 @@ describe("PgMediaSyncRepository integration", () => {
         tagline: "Mischief. Mayhem. Soap.",
       },
       {
+        locale_code: "es-ES",
+        title: "El club de la lucha",
+        summary: "Resumen",
+        tagline: null,
+      },
+      {
         locale_code: "fr-FR",
         title: "Fight Club",
         summary: "Synopsis français",
         tagline: "Première règle",
       },
     ]);
-    expect(images.rows).toHaveLength(2);
+    expect(images.rows).toEqual([
+      {
+        type: "backdrop",
+        url: "https://image.tmdb.org/t/p/original/backdrop.jpg",
+        locale_code: null,
+        source_value: "/backdrop.jpg",
+      },
+      {
+        type: "poster",
+        url: "https://image.tmdb.org/t/p/original/poster-en.jpg",
+        locale_code: "en-US",
+        source_value: "/poster-en.jpg",
+      },
+      {
+        type: "poster",
+        url: "https://image.tmdb.org/t/p/original/poster-fr.jpg",
+        locale_code: "fr-FR",
+        source_value: "/poster-fr.jpg",
+      },
+    ]);
     expect(contributors.rows).toEqual([
       {
         name: "Brad Pitt",
@@ -184,12 +242,53 @@ describe("PgMediaSyncRepository integration", () => {
         character_name: "Tyler Durden",
       },
       {
-        name: "David Fincher",
-        source_value: "7467",
-        role: "director",
-        character_name: null,
+        name: "Edward Norton",
+        source_value: "819",
+        role: "actor",
+        character_name: "The Narrator",
       },
     ]);
+    expect(profileImages.rows).toEqual([
+      {
+        name: "Brad Pitt",
+        type: "profile",
+        url: "https://image.tmdb.org/t/p/original/brad-pitt.jpg",
+        source_value: "/brad-pitt.jpg",
+      },
+    ]);
+    expect(
+      await pool.query(
+        `SELECT count(*)::int AS count
+         FROM work_images wi
+         JOIN images i ON i.id = wi.image_id
+         WHERE wi.work_id = $1 AND i.type = 'profile'`,
+        [workId],
+      ),
+    ).toMatchObject({ rows: [{ count: 0 }] });
+
+    const staleContributor = await pool.query<{ id: string }>(
+      `INSERT INTO contributors (name)
+       VALUES ('David Fincher')
+       RETURNING id`,
+    );
+    const staleContributorId = staleContributor.rows[0]?.id;
+    await pool.query(
+      `INSERT INTO source_contributors (source_id, contributor_id, source_value)
+       SELECT id, $1, '7467'
+       FROM sources
+       WHERE name = 'tmdb'`,
+      [staleContributorId],
+    );
+    await pool.query(
+      `INSERT INTO work_contributors (
+         work_id,
+         contributor_id,
+         role,
+         character_name
+       )
+       VALUES ($1, $2, 'director', NULL)`,
+      [workId, staleContributorId],
+    );
 
     const updatedAggregate: NormalizedWorkAggregate = {
       ...aggregate,
@@ -199,13 +298,21 @@ describe("PgMediaSyncRepository integration", () => {
           : translation,
       ),
       images: aggregate.images.map((image) =>
-        image.type === "poster"
-          ? { ...image, url: "https://cdn.example/poster.jpg" }
+        image.sourceValue === "/poster-fr.jpg"
+          ? { ...image, url: "https://cdn.example/poster-fr.jpg" }
           : image,
       ),
       contributors: aggregate.contributors.map((contributor) =>
-        contributor.role === "actor"
-          ? { ...contributor, characterName: "Tyler" }
+        contributor.sourceValue === "287"
+          ? {
+              ...contributor,
+              characterName: "Tyler",
+              profileImage: {
+                type: "profile",
+                sourceValue: "/brad-pitt.jpg",
+                url: "https://cdn.example/brad-pitt.jpg",
+              },
+            }
           : contributor,
       ),
     };
@@ -218,10 +325,10 @@ describe("PgMediaSyncRepository integration", () => {
     ).toMatchObject({ rows: [{ count: 1 }] });
     expect(
       await pool.query(`SELECT count(*)::int AS count FROM contributors`),
-    ).toMatchObject({ rows: [{ count: 2 }] });
+    ).toMatchObject({ rows: [{ count: 3 }] });
     expect(
       await pool.query(`SELECT count(*)::int AS count FROM images`),
-    ).toMatchObject({ rows: [{ count: 2 }] });
+    ).toMatchObject({ rows: [{ count: 4 }] });
     expect(
       await pool.query(
         `SELECT summary FROM work_i18n
@@ -231,10 +338,36 @@ describe("PgMediaSyncRepository integration", () => {
     ).toMatchObject({ rows: [{ summary: "Synopsis français corrigé" }] });
     expect(
       await pool.query(
-        `SELECT character_name FROM work_contributors
-         WHERE work_id = $1 AND role = 'actor'`,
+        `SELECT wc.character_name
+         FROM work_contributors wc
+         JOIN source_contributors sc ON sc.contributor_id = wc.contributor_id
+         WHERE wc.work_id = $1 AND sc.source_value = '287'`,
         [workId],
       ),
     ).toMatchObject({ rows: [{ character_name: "Tyler" }] });
+    expect(
+      await pool.query(
+        `SELECT i.url
+         FROM contributor_images ci
+         JOIN images i ON i.id = ci.image_id
+         JOIN source_images si ON si.image_id = i.id
+         WHERE si.source_value = '/brad-pitt.jpg'`,
+      ),
+    ).toMatchObject({ rows: [{ url: "https://cdn.example/brad-pitt.jpg" }] });
+    expect(
+      await pool.query(
+        `SELECT count(*)::int AS count
+         FROM work_contributors wc
+         JOIN source_contributors sc ON sc.contributor_id = wc.contributor_id
+         JOIN sources s ON s.id = sc.source_id
+         WHERE wc.work_id = $1
+           AND s.name = 'tmdb'
+           AND NOT (
+             sc.source_value = ANY($2::text[])
+             AND wc.role = 'actor'
+           )`,
+        [workId, ["287", "819"]],
+      ),
+    ).toMatchObject({ rows: [{ count: 0 }] });
   });
 });

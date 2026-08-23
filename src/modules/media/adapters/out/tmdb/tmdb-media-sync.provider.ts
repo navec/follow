@@ -19,12 +19,20 @@ type TmdbWorkSyncRequest = {
 interface TmdbWorkPayload {
   id: number;
   media_type?: string;
+  status?: string;
+  title?: string;
+  overview?: string;
+  tagline?: string;
   release_date?: string;
   first_air_date?: string;
   original_title?: string;
   original_language?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
+  images?: {
+    posters: Array<{ file_path: string; iso_639_1: string | null }>;
+    backdrops: Array<{ file_path: string; iso_639_1: string | null }>;
+  };
   translations?: {
     translations: Array<{
       iso_639_1: string;
@@ -41,6 +49,7 @@ interface TmdbWorkPayload {
       id: number;
       name: string;
       character?: string;
+      profile_path?: string | null;
     }>;
     crew: Array<{
       id: number;
@@ -57,8 +66,15 @@ interface TmdbClient {
   getImageUrl?(filePath: string): string;
 }
 
+interface TmdbMediaSyncProviderOptions {
+  defaultLocale?: string;
+}
+
 export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
-  constructor(private readonly client: TmdbClient) {}
+  constructor(
+    private readonly client: TmdbClient,
+    private readonly options: TmdbMediaSyncProviderOptions = {},
+  ) {}
 
   supports(provider: SyncRequest["provider"]): boolean {
     return provider === "tmdb";
@@ -112,6 +128,10 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
     if (payload.original_language) {
       work.originalLanguage = payload.original_language;
     }
+    const statusCode = this.normalizeStatus(payload.status);
+    if (statusCode) {
+      work.statusCode = statusCode;
+    }
 
     const aggregate: NormalizedWorkAggregate = {
       source: {
@@ -142,22 +162,23 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
   private mapTranslations(
     payload: TmdbWorkPayload,
   ): NormalizedWorkTranslation[] {
-    const supportedLocales = new Map([
-      ["fr-FR", { localeCode: "fr-FR", language: "fr" }],
-      ["en-US", { localeCode: "en-US", language: "en" }],
-    ]);
-
     return (payload.translations?.translations ?? []).flatMap((translation) => {
-      const locale = supportedLocales.get(
-        `${translation.iso_639_1}-${translation.iso_3166_1}`,
-      );
-      const title = translation.data.title?.trim();
-      if (!locale || !title) {
+      const localeCode = `${translation.iso_639_1}-${translation.iso_3166_1}`;
+      const title =
+        translation.data.title?.trim() ||
+        (localeCode === this.options.defaultLocale
+          ? payload.title?.trim()
+          : undefined) ||
+        (translation.iso_639_1 === payload.original_language
+          ? payload.original_title?.trim()
+          : undefined);
+      if (!title) {
         return [];
       }
 
       const normalized: NormalizedWorkTranslation = {
-        ...locale,
+        localeCode,
+        language: translation.iso_639_1,
         title,
       };
       if (translation.data.overview?.trim()) {
@@ -176,19 +197,35 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
     }
 
     const images: NormalizedWorkImage[] = [];
-    if (payload.poster_path) {
-      images.push({
-        type: "poster",
-        sourceValue: payload.poster_path,
-        url: this.client.getImageUrl(payload.poster_path),
-      });
-    }
-    if (payload.backdrop_path) {
-      images.push({
-        type: "backdrop",
-        sourceValue: payload.backdrop_path,
-        url: this.client.getImageUrl(payload.backdrop_path),
-      });
+    const seenPaths = new Set<string>();
+    const galleries = [
+      ...(payload.images?.posters ?? []).map((image) => ({
+        ...image,
+        type: "poster" as const,
+      })),
+      ...(payload.images?.backdrops ?? []).map((image) => ({
+        ...image,
+        type: "backdrop" as const,
+      })),
+    ];
+
+    for (const image of galleries) {
+      if (seenPaths.has(image.file_path)) {
+        continue;
+      }
+      seenPaths.add(image.file_path);
+
+      const normalized: NormalizedWorkImage = {
+        type: image.type,
+        sourceValue: image.file_path,
+        url: this.client.getImageUrl(image.file_path),
+      };
+      const locale = this.mapImageLocale(image.iso_639_1);
+      if (locale) {
+        normalized.localeCode = locale.localeCode;
+        normalized.language = locale.language;
+      }
+      images.push(normalized);
     }
     return images;
   }
@@ -205,17 +242,37 @@ export class TmdbMediaSyncProvider implements MediaSyncProviderPort {
       if (person.character?.trim()) {
         actor.characterName = person.character;
       }
+      if (person.profile_path && this.client.getImageUrl) {
+        actor.profileImage = {
+          type: "profile",
+          sourceValue: person.profile_path,
+          url: this.client.getImageUrl(person.profile_path),
+        };
+      }
       return actor;
     });
-    const directors = (payload.credits?.crew ?? [])
-      .filter(({ job }) => job === "Director")
-      .map((person) => ({
-        sourceValue: String(person.id),
-        name: person.name,
-        role: "director" as const,
-      }));
+    return actors;
+  }
 
-    return [...actors, ...directors];
+  private mapImageLocale(
+    language: string | null,
+  ): { localeCode: string; language: string } | undefined {
+    if (language === "fr") {
+      return { localeCode: "fr-FR", language };
+    }
+    if (language === "en") {
+      return { localeCode: "en-US", language };
+    }
+    return undefined;
+  }
+
+  private normalizeStatus(status: string | undefined): string | undefined {
+    const normalized = status
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    return normalized || undefined;
   }
 
   private normalizeWorkType(type: string): string {

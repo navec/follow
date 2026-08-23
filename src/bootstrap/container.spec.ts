@@ -1,7 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { AppEnv } from "@platform/config/index.js";
 import { createContainer } from "@bootstrap/container.js";
+
+const { tmdbProviderConstructor } = vi.hoisted(() => ({
+  tmdbProviderConstructor: vi.fn(),
+}));
+
+vi.mock("@media/adapters/out/tmdb/tmdb-media-sync.provider.js", () => ({
+  TmdbMediaSyncProvider: class {
+    constructor(client: unknown, options?: unknown) {
+      tmdbProviderConstructor(client, options);
+    }
+
+    supports() {
+      return true;
+    }
+
+    async fetch() {
+      return [];
+    }
+  },
+}));
 
 const testEnv: AppEnv = {
   NODE_ENV: "test",
@@ -33,6 +53,10 @@ describe("createContainer", () => {
         { method: "POST", path: "/media/sync" },
       ]);
       expect(container.pgPool).toBeDefined();
+      expect(tmdbProviderConstructor).toHaveBeenCalledWith(
+        expect.anything(),
+        { defaultLocale: "fr-FR" },
+      );
     } finally {
       await container.pgPool.end();
     }

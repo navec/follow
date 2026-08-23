@@ -65,7 +65,9 @@ export function createContainer(
           return `${env.TMDB_IMAGE_BASE_URL.replace(/\/$/, "")}/${filePath.replace(/^\//, "")}`;
         },
       };
-  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient);
+  const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient, {
+    defaultLocale: env.TMDB_DEFAULT_LANGUAGE,
+  });
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
     async getWorkOrFeed(request: {
       provider: "mangadex";

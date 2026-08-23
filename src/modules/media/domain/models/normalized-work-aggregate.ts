@@ -9,16 +9,19 @@ export interface NormalizedWorkTranslation {
 }
 
 export interface NormalizedWorkImage {
-  type: "poster" | "backdrop";
+  type: "poster" | "backdrop" | "profile";
   sourceValue: string;
   url: string;
+  localeCode?: string;
+  language?: string;
 }
 
 export interface NormalizedWorkContributor {
   sourceValue: string;
   name: string;
-  role: "actor" | "director";
+  role: "actor";
   characterName?: string;
+  profileImage?: NormalizedWorkImage;
 }
 
 export interface NormalizedWorkAggregate {
@@ -31,6 +34,7 @@ export interface NormalizedWorkAggregate {
     releaseDate?: string;
     originalTitle?: string;
     originalLanguage?: string;
+    statusCode?: string;
   };
   translations?: ReadonlyArray<NormalizedWorkTranslation>;
   images?: ReadonlyArray<NormalizedWorkImage>;

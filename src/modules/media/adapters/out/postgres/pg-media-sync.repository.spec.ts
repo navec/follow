@@ -195,7 +195,115 @@ describe("PgMediaSyncRepository", () => {
       "1999-10-15",
       null,
       null,
+      null,
     ]);
+  });
+
+  it("resolves and assigns a normalized status when creating a work", async () => {
+    const queries: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string, _params?: unknown[]) => {
+        queries.push(sql);
+        if (sql.includes("SELECT id FROM sources")) {
+          return { rows: [{ id: 10 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT id FROM statuses")) {
+          return { rows: [{ id: 50 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT work_id") && sql.includes("FROM source_works")) {
+          return { rows: [], rowCount: 0 };
+        }
+        if (sql.includes("INSERT INTO works")) {
+          return { rows: [{ id: 20 }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+      release: vi.fn(),
+    };
+    const repository = new PgMediaSyncRepository({
+      connect: vi.fn().mockResolvedValue(client),
+    } as never);
+
+    await repository.upsertMany([
+      {
+        source: { provider: "tmdb", sourceValue: "550" },
+        work: { type: "movie", statusCode: "released" },
+      },
+    ]);
+
+    const statusInsertIndex = queries.findIndex((sql) =>
+      sql.includes("INSERT INTO statuses"),
+    );
+    const statusLookupIndex = queries.findIndex((sql) =>
+      sql.includes("SELECT id FROM statuses"),
+    );
+    const workInsertIndex = queries.findIndex((sql) =>
+      sql.includes("INSERT INTO works"),
+    );
+    expect(statusInsertIndex).toBeGreaterThanOrEqual(0);
+    expect(statusLookupIndex).toBeGreaterThan(statusInsertIndex);
+    expect(workInsertIndex).toBeGreaterThan(statusLookupIndex);
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO statuses (code)"),
+      ["released"],
+    );
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("SELECT id FROM statuses WHERE code = $1"),
+      ["released"],
+    );
+    const workInsert = client.query.mock.calls.find(([sql]) =>
+      sql.includes("INSERT INTO works"),
+    );
+    expect(workInsert?.[0]).toContain("status_id");
+    expect(workInsert?.[1]).toEqual(["movie", null, null, null, 50]);
+  });
+
+  it("updates status without clearing an existing status when omitted", async () => {
+    const createClient = (statusId?: number) => ({
+      query: vi.fn(async (sql: string, _params?: unknown[]) => {
+        if (sql.includes("SELECT id FROM sources")) {
+          return { rows: [{ id: 10 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT id FROM statuses")) {
+          return { rows: [{ id: statusId }], rowCount: statusId ? 1 : 0 };
+        }
+        if (sql.includes("SELECT work_id") && sql.includes("FROM source_works")) {
+          return { rows: [{ work_id: 20 }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+      release: vi.fn(),
+    });
+    const withStatus = createClient(50);
+    const withoutStatus = createClient();
+    const repository = new PgMediaSyncRepository({
+      connect: vi
+        .fn()
+        .mockResolvedValueOnce(withStatus)
+        .mockResolvedValueOnce(withoutStatus),
+    } as never);
+
+    await repository.upsertMany([
+      {
+        source: { provider: "tmdb", sourceValue: "550" },
+        work: { type: "movie", statusCode: "released" },
+      },
+      {
+        source: { provider: "tmdb", sourceValue: "551" },
+        work: { type: "movie" },
+      },
+    ]);
+
+    for (const [client, expectedStatusId] of [
+      [withStatus, 50],
+      [withoutStatus, null],
+    ] as const) {
+      const update = client.query.mock.calls.find(([sql]) =>
+        sql.includes("UPDATE works"),
+      );
+      expect(update?.[0]).toContain("status_id = COALESCE($6, status_id)");
+      expect(update?.[1]).toEqual([20, "movie", null, null, null, expectedStatusId]);
+    }
   });
 
   it("rolls back only the failed aggregate and continues the batch", async () => {
@@ -450,6 +558,7 @@ describe("PgMediaSyncRepository", () => {
       "1999-10-15",
       "Fight Club",
       "en",
+      null,
     ]);
     expect(
       client.query.mock.calls.some(([sql]) => sql.includes("INSERT INTO work_i18n")),
@@ -512,7 +621,7 @@ describe("PgMediaSyncRepository", () => {
           { type: "backdrop", sourceValue: "/a.jpg", url: "https://img/a.jpg" },
         ],
         contributors: [
-          { sourceValue: "7467", name: "David Fincher", role: "director" },
+          { sourceValue: "7467", name: "David Fincher", role: "actor" },
           { sourceValue: "287", name: "Brad Pitt", role: "actor" },
         ],
       },
@@ -524,6 +633,227 @@ describe("PgMediaSyncRepository", () => {
       "media:source-image:tmdb:/z.jpg",
       "media:source-contributor:tmdb:287",
       "media:source-contributor:tmdb:7467",
+    ]);
+  });
+
+  it("persists localized gallery images without linking profile images to works", async () => {
+    const calls: Array<{ sql: string; params?: unknown[] }> = [];
+    let nextImageId = 30;
+    const client = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        calls.push({ sql, ...(params ? { params } : {}) });
+        if (sql.includes("SELECT id FROM sources")) {
+          return { rows: [{ id: 10 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT work_id") && sql.includes("FROM source_works")) {
+          return { rows: [{ work_id: 20 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT image_id") && sql.includes("FROM source_images")) {
+          return params?.[1] === "/poster-en.jpg"
+            ? { rows: [{ image_id: 31 }], rowCount: 1 }
+            : { rows: [], rowCount: 0 };
+        }
+        if (sql.includes("INSERT INTO images")) {
+          nextImageId += 1;
+          return { rows: [{ id: nextImageId }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+      release: vi.fn(),
+    };
+    const repository = new PgMediaSyncRepository({
+      connect: vi.fn().mockResolvedValue(client),
+    } as never);
+
+    await repository.upsertMany([
+      {
+        source: { provider: "tmdb", sourceValue: "550" },
+        work: { type: "movie" },
+        images: [
+          {
+            type: "poster",
+            sourceValue: "/poster-fr.jpg",
+            url: "https://img/poster-fr.jpg",
+            localeCode: "fr-FR",
+            language: "fr",
+          },
+          {
+            type: "poster",
+            sourceValue: "/poster-en.jpg",
+            url: "https://img/poster-en.jpg",
+            localeCode: "en-US",
+            language: "en",
+          },
+          {
+            type: "backdrop",
+            sourceValue: "/backdrop.jpg",
+            url: "https://img/backdrop.jpg",
+          },
+          {
+            type: "profile",
+            sourceValue: "/profile.jpg",
+            url: "https://img/profile.jpg",
+          },
+        ],
+      },
+    ]);
+
+    for (const [localeCode, language, imagePath] of [
+      ["fr-FR", "fr", "/poster-fr.jpg"],
+      ["en-US", "en", "/poster-en.jpg"],
+    ] as const) {
+      const localeIndex = calls.findIndex(
+        ({ sql, params }) =>
+          sql.includes("INSERT INTO locales") && params?.[0] === localeCode,
+      );
+      const imageIndex = calls.findIndex(
+        ({ sql, params }) =>
+          (sql.includes("INSERT INTO images") || sql.includes("UPDATE images")) &&
+          params?.includes(imagePath === "/poster-en.jpg" ? 31 : `https://img/${imagePath.slice(1)}`),
+      );
+      expect(localeIndex).toBeGreaterThanOrEqual(0);
+      expect(calls[localeIndex]?.params).toEqual([localeCode, language]);
+      expect(imageIndex).toBeGreaterThan(localeIndex);
+    }
+
+    const imageInsertCalls = calls.filter(({ sql }) =>
+      sql.includes("INSERT INTO images"),
+    );
+    expect(imageInsertCalls.map(({ sql }) => sql)).toEqual([
+      expect.stringContaining("locale_code"),
+      expect.stringContaining("locale_code"),
+    ]);
+    expect(imageInsertCalls.map(({ params }) => params)).toEqual([
+      ["poster", "https://img/poster-fr.jpg", "fr-FR"],
+      ["backdrop", "https://img/backdrop.jpg", null],
+    ]);
+    const imageUpdate = calls.find(({ sql }) => sql.includes("UPDATE images"));
+    expect(imageUpdate?.sql).toContain("locale_code");
+    expect(imageUpdate?.params).toEqual([
+      31,
+      "poster",
+      "https://img/poster-en.jpg",
+      "en-US",
+    ]);
+    const workImageLinks = calls.filter(({ sql }) =>
+      sql.includes("INSERT INTO work_images"),
+    );
+    expect(workImageLinks).toHaveLength(3);
+    expect(calls.some(({ params }) => params?.includes("/profile.jpg"))).toBe(false);
+  });
+
+  it("reuses and links cast profile images without linking them to the work", async () => {
+    const lockKeys: string[] = [];
+    let profileSourceExists = false;
+    const client = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes("pg_advisory_xact_lock")) {
+          lockKeys.push(String(params?.[0]));
+        }
+        if (sql.includes("SELECT id FROM sources")) {
+          return { rows: [{ id: 10 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT work_id") && sql.includes("FROM source_works")) {
+          return { rows: [{ work_id: 20 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT image_id") && sql.includes("FROM source_images")) {
+          if (params?.[1] === "/z-poster.jpg") {
+            return { rows: [{ image_id: 31 }], rowCount: 1 };
+          }
+          if (params?.[1] === "/a-profile.jpg" && profileSourceExists) {
+            return { rows: [{ image_id: 30 }], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        }
+        if (sql.includes("INSERT INTO images")) {
+          return { rows: [{ id: 30 }], rowCount: 1 };
+        }
+        if (sql.includes("INSERT INTO source_images")) {
+          profileSourceExists = true;
+        }
+        if (
+          sql.includes("SELECT contributor_id") &&
+          sql.includes("FROM source_contributors")
+        ) {
+          return params?.[1] === "287"
+            ? { rows: [{ contributor_id: 40 }], rowCount: 1 }
+            : { rows: [{ contributor_id: 41 }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+      release: vi.fn(),
+    };
+    const repository = new PgMediaSyncRepository({
+      connect: vi.fn().mockResolvedValue(client),
+    } as never);
+    const aggregate: NormalizedWorkAggregate = {
+      source: { provider: "tmdb", sourceValue: "550" },
+      work: { type: "movie" },
+      images: [
+        {
+          type: "poster",
+          sourceValue: "/z-poster.jpg",
+          url: "https://img/z-poster.jpg",
+        },
+      ],
+      contributors: [
+        {
+          sourceValue: "287",
+          name: "Brad Pitt",
+          role: "actor",
+          characterName: "Tyler Durden",
+          profileImage: {
+            type: "profile",
+            sourceValue: "/a-profile.jpg",
+            url: "https://img/a-profile.jpg",
+          },
+        },
+        {
+          sourceValue: "819",
+          name: "Edward Norton",
+          role: "actor",
+          characterName: "The Narrator",
+        },
+      ],
+    };
+
+    await repository.upsertMany([aggregate]);
+    await repository.upsertMany([aggregate]);
+
+    expect(lockKeys).toEqual([
+      "media:source-work:tmdb:550",
+      "media:source-image:tmdb:/a-profile.jpg",
+      "media:source-image:tmdb:/z-poster.jpg",
+      "media:source-contributor:tmdb:287",
+      "media:source-contributor:tmdb:819",
+      "media:source-work:tmdb:550",
+      "media:source-image:tmdb:/a-profile.jpg",
+      "media:source-image:tmdb:/z-poster.jpg",
+      "media:source-contributor:tmdb:287",
+      "media:source-contributor:tmdb:819",
+    ]);
+    const profileImageInserts = client.query.mock.calls.filter(
+      ([sql, params]) =>
+        sql.includes("INSERT INTO images") && params?.[0] === "profile",
+    );
+    expect(profileImageInserts).toHaveLength(1);
+    const profileLinks = client.query.mock.calls.filter(([sql]) =>
+      sql.includes("INSERT INTO contributor_images"),
+    );
+    expect(profileLinks).toHaveLength(2);
+    expect(profileLinks[0]?.[0]).toContain(
+      "ON CONFLICT (contributor_id, image_id) DO NOTHING",
+    );
+    expect(profileLinks.map(([, params]) => params)).toEqual([
+      [40, 30],
+      [40, 30],
+    ]);
+    const workImageLinks = client.query.mock.calls.filter(([sql]) =>
+      sql.includes("INSERT INTO work_images"),
+    );
+    expect(workImageLinks.map(([, params]) => params)).toEqual([
+      [20, 31],
+      [20, 31],
     ]);
   });
 

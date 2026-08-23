@@ -2,7 +2,10 @@ import type { Pool, PoolClient } from "pg";
 
 import type { SyncResult } from "@media/application/dto/sync-result.dto.js";
 import type { MediaSyncRepositoryPort } from "@media/application/ports/out/media-sync-repository.port.js";
-import type { NormalizedWorkAggregate } from "@media/domain/models/normalized-work-aggregate.js";
+import type {
+  NormalizedWorkAggregate,
+  NormalizedWorkImage,
+} from "@media/domain/models/normalized-work-aggregate.js";
 import {
   acquirePostgresTransactionLock,
   withPostgresTransaction,
@@ -52,6 +55,10 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
               sourceId,
               aggregate.source.sourceValue,
             );
+            const statusId = await this.resolveStatusId(
+              client,
+              aggregate.work.statusCode,
+            );
 
             let workId: number;
             let outcome: "created" | "updated";
@@ -62,6 +69,7 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
                      release_date = COALESCE($3::date, release_date),
                      original_title = COALESCE($4, original_title),
                      original_language = COALESCE($5, original_language),
+                     status_id = COALESCE($6, status_id),
                      updated_at = now()
                  WHERE id = $1`,
                 [
@@ -70,12 +78,13 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
                   aggregate.work.releaseDate ?? null,
                   aggregate.work.originalTitle ?? null,
                   aggregate.work.originalLanguage ?? null,
+                  statusId,
                 ],
               );
               workId = existingWorkId;
               outcome = "updated";
             } else {
-              workId = await this.createWork(client, aggregate);
+              workId = await this.createWork(client, aggregate, statusId);
               await client.query(
                 `INSERT INTO source_works (source_id, work_id, source_value)
                  VALUES ($1, $2, $3)`,
@@ -123,7 +132,12 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     aggregate: NormalizedWorkAggregate,
   ): Promise<void> {
     const imageValues = [
-      ...new Set((aggregate.images ?? []).map(({ sourceValue }) => sourceValue)),
+      ...new Set([
+        ...(aggregate.images ?? []).map(({ sourceValue }) => sourceValue),
+        ...(aggregate.contributors ?? []).flatMap(({ profileImage }) =>
+          profileImage ? [profileImage.sourceValue] : [],
+        ),
+      ]),
     ].sort();
     for (const sourceValue of imageValues) {
       await acquirePostgresTransactionLock(
@@ -185,36 +199,10 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     aggregate: NormalizedWorkAggregate,
   ): Promise<void> {
     for (const image of aggregate.images ?? []) {
-      const existing = await client.query<ImageIdRow>(
-        `SELECT image_id
-         FROM source_images
-         WHERE source_id = $1 AND source_value = $2
-         LIMIT 1`,
-        [sourceId, image.sourceValue],
-      );
-      let imageId = existing.rows[0]?.image_id;
-      if (imageId) {
-        await client.query(
-          `UPDATE images SET type = $2, url = $3 WHERE id = $1`,
-          [imageId, image.type, image.url],
-        );
-      } else {
-        const inserted = await client.query<IdRow>(
-          `INSERT INTO images (type, url)
-           VALUES ($1, $2)
-           RETURNING id`,
-          [image.type, image.url],
-        );
-        imageId = inserted.rows[0]?.id;
-        if (!imageId) {
-          throw new Error("Failed to create image");
-        }
-        await client.query(
-          `INSERT INTO source_images (source_id, image_id, source_value)
-           VALUES ($1, $2, $3)`,
-          [sourceId, imageId, image.sourceValue],
-        );
+      if (image.type === "profile") {
+        continue;
       }
+      const imageId = await this.resolveSourceImage(client, sourceId, image);
 
       await client.query(
         `INSERT INTO work_images (work_id, image_id)
@@ -225,13 +213,84 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     }
   }
 
+  private async resolveSourceImage(
+    client: PoolClient,
+    sourceId: number,
+    image: NormalizedWorkImage,
+  ): Promise<number> {
+    if (image.localeCode) {
+      await client.query(
+        `INSERT INTO locales (code, language)
+         VALUES ($1, $2)
+         ON CONFLICT (code) DO NOTHING`,
+        [image.localeCode, image.language ?? image.localeCode.split("-")[0]],
+      );
+    }
+
+    const existing = await client.query<ImageIdRow>(
+      `SELECT image_id
+       FROM source_images
+       WHERE source_id = $1 AND source_value = $2
+       LIMIT 1`,
+      [sourceId, image.sourceValue],
+    );
+    const imageId = existing.rows[0]?.image_id;
+    if (imageId) {
+      await client.query(
+        `UPDATE images
+         SET type = $2, url = $3, locale_code = $4
+         WHERE id = $1`,
+        [imageId, image.type, image.url, image.localeCode ?? null],
+      );
+      return imageId;
+    }
+
+    const inserted = await client.query<IdRow>(
+      `INSERT INTO images (type, url, locale_code)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
+      [image.type, image.url, image.localeCode ?? null],
+    );
+    const insertedImageId = inserted.rows[0]?.id;
+    if (!insertedImageId) {
+      throw new Error("Failed to create image");
+    }
+    await client.query(
+      `INSERT INTO source_images (source_id, image_id, source_value)
+       VALUES ($1, $2, $3)`,
+      [sourceId, insertedImageId, image.sourceValue],
+    );
+    return insertedImageId;
+  }
+
   private async syncContributors(
     client: PoolClient,
     sourceId: number,
     workId: number,
     aggregate: NormalizedWorkAggregate,
   ): Promise<void> {
-    for (const contributor of aggregate.contributors ?? []) {
+    if (!aggregate.contributors) {
+      return;
+    }
+
+    await client.query(
+      `DELETE FROM work_contributors wc
+       USING source_contributors sc
+       WHERE wc.work_id = $1
+         AND wc.contributor_id = sc.contributor_id
+         AND sc.source_id = $2
+         AND NOT (
+           sc.source_value = ANY($3::text[])
+           AND wc.role = 'actor'
+         )`,
+      [
+        workId,
+        sourceId,
+        aggregate.contributors.map(({ sourceValue }) => sourceValue),
+      ],
+    );
+
+    for (const contributor of aggregate.contributors) {
       const existing = await client.query<ContributorIdRow>(
         `SELECT contributor_id
          FROM source_contributors
@@ -280,6 +339,20 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
           contributor.characterName ?? null,
         ],
       );
+
+      if (contributor.profileImage) {
+        const imageId = await this.resolveSourceImage(
+          client,
+          sourceId,
+          contributor.profileImage,
+        );
+        await client.query(
+          `INSERT INTO contributor_images (contributor_id, image_id)
+           VALUES ($1, $2)
+           ON CONFLICT (contributor_id, image_id) DO NOTHING`,
+          [contributorId, imageId],
+        );
+      }
     }
   }
 
@@ -322,24 +395,52 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     return result.rows[0]?.work_id ?? null;
   }
 
+  private async resolveStatusId(
+    client: PoolClient,
+    statusCode: string | undefined,
+  ): Promise<number | null> {
+    if (!statusCode) {
+      return null;
+    }
+
+    await client.query(
+      `INSERT INTO statuses (code)
+       VALUES ($1)
+       ON CONFLICT (code) DO NOTHING`,
+      [statusCode],
+    );
+    const resolved = await client.query<IdRow>(
+      `SELECT id FROM statuses WHERE code = $1`,
+      [statusCode],
+    );
+    const statusId = resolved.rows[0]?.id;
+    if (!statusId) {
+      throw new Error(`Failed to resolve status ${statusCode}`);
+    }
+    return statusId;
+  }
+
   private async createWork(
     client: PoolClient,
     aggregate: NormalizedWorkAggregate,
+    statusId: number | null,
   ): Promise<number> {
     const result = await client.query<IdRow>(
       `INSERT INTO works (
          type,
          release_date,
          original_title,
-         original_language
+         original_language,
+         status_id
        )
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [
         aggregate.work.type,
         aggregate.work.releaseDate ?? null,
         aggregate.work.originalTitle ?? null,
         aggregate.work.originalLanguage ?? null,
+        statusId,
       ],
     );
     const workId = result.rows[0]?.id;

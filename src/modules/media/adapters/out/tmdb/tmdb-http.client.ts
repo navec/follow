@@ -10,11 +10,19 @@ interface TmdbHttpClientOptions {
 
 interface TmdbMoviePayload {
   id: number;
+  status?: string;
+  title?: string;
+  overview?: string;
+  tagline?: string;
   release_date?: string;
   original_title?: string;
   original_language?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
+  images?: {
+    posters: Array<{ file_path: string; iso_639_1: string | null }>;
+    backdrops: Array<{ file_path: string; iso_639_1: string | null }>;
+  };
   translations?: {
     translations: Array<{
       iso_639_1: string;
@@ -31,6 +39,7 @@ interface TmdbMoviePayload {
       id: number;
       name: string;
       character?: string;
+      profile_path?: string | null;
     }>;
     crew: Array<{
       id: number;
@@ -75,7 +84,8 @@ export class TmdbHttpClient {
     url.searchParams.set("language", this.options.defaultLanguage);
     if (request.params.type === "movie") {
       url.searchParams.set("region", this.options.defaultRegion);
-      url.searchParams.set("append_to_response", "translations,credits");
+      url.searchParams.set("append_to_response", "translations,credits,images");
+      url.searchParams.set("include_image_language", "fr,en,null");
     }
 
     const controller = new AbortController();

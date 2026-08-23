@@ -269,7 +269,28 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     workId: number,
     aggregate: NormalizedWorkAggregate,
   ): Promise<void> {
-    for (const contributor of aggregate.contributors ?? []) {
+    if (!aggregate.contributors) {
+      return;
+    }
+
+    await client.query(
+      `DELETE FROM work_contributors wc
+       USING source_contributors sc
+       WHERE wc.work_id = $1
+         AND wc.contributor_id = sc.contributor_id
+         AND sc.source_id = $2
+         AND NOT (
+           sc.source_value = ANY($3::text[])
+           AND wc.role = 'actor'
+         )`,
+      [
+        workId,
+        sourceId,
+        aggregate.contributors.map(({ sourceValue }) => sourceValue),
+      ],
+    );
+
+    for (const contributor of aggregate.contributors) {
       const existing = await client.query<ContributorIdRow>(
         `SELECT contributor_id
          FROM source_contributors

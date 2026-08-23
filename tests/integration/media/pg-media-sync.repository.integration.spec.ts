@@ -266,6 +266,30 @@ describe("PgMediaSyncRepository integration", () => {
       ),
     ).toMatchObject({ rows: [{ count: 0 }] });
 
+    const staleContributor = await pool.query<{ id: string }>(
+      `INSERT INTO contributors (name)
+       VALUES ('David Fincher')
+       RETURNING id`,
+    );
+    const staleContributorId = staleContributor.rows[0]?.id;
+    await pool.query(
+      `INSERT INTO source_contributors (source_id, contributor_id, source_value)
+       SELECT id, $1, '7467'
+       FROM sources
+       WHERE name = 'tmdb'`,
+      [staleContributorId],
+    );
+    await pool.query(
+      `INSERT INTO work_contributors (
+         work_id,
+         contributor_id,
+         role,
+         character_name
+       )
+       VALUES ($1, $2, 'director', NULL)`,
+      [workId, staleContributorId],
+    );
+
     const updatedAggregate: NormalizedWorkAggregate = {
       ...aggregate,
       translations: aggregate.translations.map((translation) =>
@@ -301,7 +325,7 @@ describe("PgMediaSyncRepository integration", () => {
     ).toMatchObject({ rows: [{ count: 1 }] });
     expect(
       await pool.query(`SELECT count(*)::int AS count FROM contributors`),
-    ).toMatchObject({ rows: [{ count: 2 }] });
+    ).toMatchObject({ rows: [{ count: 3 }] });
     expect(
       await pool.query(`SELECT count(*)::int AS count FROM images`),
     ).toMatchObject({ rows: [{ count: 4 }] });
@@ -330,5 +354,20 @@ describe("PgMediaSyncRepository integration", () => {
          WHERE si.source_value = '/brad-pitt.jpg'`,
       ),
     ).toMatchObject({ rows: [{ url: "https://cdn.example/brad-pitt.jpg" }] });
+    expect(
+      await pool.query(
+        `SELECT count(*)::int AS count
+         FROM work_contributors wc
+         JOIN source_contributors sc ON sc.contributor_id = wc.contributor_id
+         JOIN sources s ON s.id = sc.source_id
+         WHERE wc.work_id = $1
+           AND s.name = 'tmdb'
+           AND NOT (
+             sc.source_value = ANY($2::text[])
+             AND wc.role = 'actor'
+           )`,
+        [workId, ["287", "819"]],
+      ),
+    ).toMatchObject({ rows: [{ count: 0 }] });
   });
 });

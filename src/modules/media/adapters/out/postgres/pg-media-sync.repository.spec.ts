@@ -742,6 +742,121 @@ describe("PgMediaSyncRepository", () => {
     expect(calls.some(({ params }) => params?.includes("/profile.jpg"))).toBe(false);
   });
 
+  it("reuses and links cast profile images without linking them to the work", async () => {
+    const lockKeys: string[] = [];
+    let profileSourceExists = false;
+    const client = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        if (sql.includes("pg_advisory_xact_lock")) {
+          lockKeys.push(String(params?.[0]));
+        }
+        if (sql.includes("SELECT id FROM sources")) {
+          return { rows: [{ id: 10 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT work_id") && sql.includes("FROM source_works")) {
+          return { rows: [{ work_id: 20 }], rowCount: 1 };
+        }
+        if (sql.includes("SELECT image_id") && sql.includes("FROM source_images")) {
+          if (params?.[1] === "/z-poster.jpg") {
+            return { rows: [{ image_id: 31 }], rowCount: 1 };
+          }
+          if (params?.[1] === "/a-profile.jpg" && profileSourceExists) {
+            return { rows: [{ image_id: 30 }], rowCount: 1 };
+          }
+          return { rows: [], rowCount: 0 };
+        }
+        if (sql.includes("INSERT INTO images")) {
+          return { rows: [{ id: 30 }], rowCount: 1 };
+        }
+        if (sql.includes("INSERT INTO source_images")) {
+          profileSourceExists = true;
+        }
+        if (
+          sql.includes("SELECT contributor_id") &&
+          sql.includes("FROM source_contributors")
+        ) {
+          return params?.[1] === "287"
+            ? { rows: [{ contributor_id: 40 }], rowCount: 1 }
+            : { rows: [{ contributor_id: 41 }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }),
+      release: vi.fn(),
+    };
+    const repository = new PgMediaSyncRepository({
+      connect: vi.fn().mockResolvedValue(client),
+    } as never);
+    const aggregate: NormalizedWorkAggregate = {
+      source: { provider: "tmdb", sourceValue: "550" },
+      work: { type: "movie" },
+      images: [
+        {
+          type: "poster",
+          sourceValue: "/z-poster.jpg",
+          url: "https://img/z-poster.jpg",
+        },
+      ],
+      contributors: [
+        {
+          sourceValue: "287",
+          name: "Brad Pitt",
+          role: "actor",
+          characterName: "Tyler Durden",
+          profileImage: {
+            type: "profile",
+            sourceValue: "/a-profile.jpg",
+            url: "https://img/a-profile.jpg",
+          },
+        },
+        {
+          sourceValue: "819",
+          name: "Edward Norton",
+          role: "actor",
+          characterName: "The Narrator",
+        },
+      ],
+    };
+
+    await repository.upsertMany([aggregate]);
+    await repository.upsertMany([aggregate]);
+
+    expect(lockKeys).toEqual([
+      "media:source-work:tmdb:550",
+      "media:source-image:tmdb:/a-profile.jpg",
+      "media:source-image:tmdb:/z-poster.jpg",
+      "media:source-contributor:tmdb:287",
+      "media:source-contributor:tmdb:819",
+      "media:source-work:tmdb:550",
+      "media:source-image:tmdb:/a-profile.jpg",
+      "media:source-image:tmdb:/z-poster.jpg",
+      "media:source-contributor:tmdb:287",
+      "media:source-contributor:tmdb:819",
+    ]);
+    const profileImageInserts = client.query.mock.calls.filter(
+      ([sql, params]) =>
+        sql.includes("INSERT INTO images") && params?.[0] === "profile",
+    );
+    expect(profileImageInserts).toHaveLength(1);
+    const profileLinks = client.query.mock.calls.filter(([sql]) =>
+      sql.includes("INSERT INTO contributor_images"),
+    );
+    expect(profileLinks).toHaveLength(2);
+    expect(profileLinks[0]?.[0]).toContain(
+      "ON CONFLICT (contributor_id, image_id) DO NOTHING",
+    );
+    expect(profileLinks.map(([, params]) => params)).toEqual([
+      [40, 30],
+      [40, 30],
+    ]);
+    const workImageLinks = client.query.mock.calls.filter(([sql]) =>
+      sql.includes("INSERT INTO work_images"),
+    );
+    expect(workImageLinks.map(([, params]) => params)).toEqual([
+      [20, 31],
+      [20, 31],
+    ]);
+  });
+
   it("upserts locale identities in deterministic order", async () => {
     const localeCodes: string[] = [];
     const client = {

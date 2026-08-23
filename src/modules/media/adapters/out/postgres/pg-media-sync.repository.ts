@@ -132,7 +132,12 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
     aggregate: NormalizedWorkAggregate,
   ): Promise<void> {
     const imageValues = [
-      ...new Set((aggregate.images ?? []).map(({ sourceValue }) => sourceValue)),
+      ...new Set([
+        ...(aggregate.images ?? []).map(({ sourceValue }) => sourceValue),
+        ...(aggregate.contributors ?? []).flatMap(({ profileImage }) =>
+          profileImage ? [profileImage.sourceValue] : [],
+        ),
+      ]),
     ].sort();
     for (const sourceValue of imageValues) {
       await acquirePostgresTransactionLock(
@@ -313,6 +318,20 @@ export class PgMediaSyncRepository implements MediaSyncRepositoryPort {
           contributor.characterName ?? null,
         ],
       );
+
+      if (contributor.profileImage) {
+        const imageId = await this.resolveSourceImage(
+          client,
+          sourceId,
+          contributor.profileImage,
+        );
+        await client.query(
+          `INSERT INTO contributor_images (contributor_id, image_id)
+           VALUES ($1, $2)
+           ON CONFLICT (contributor_id, image_id) DO NOTHING`,
+          [contributorId, imageId],
+        );
+      }
     }
   }
 

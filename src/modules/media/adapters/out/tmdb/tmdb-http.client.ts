@@ -3,13 +3,50 @@ interface TmdbHttpClientOptions {
   readAccessToken: string;
   defaultLanguage: string;
   defaultRegion: string;
+  imageBaseUrl: string;
   requestTimeoutMs: number;
   fetchImpl?: typeof fetch;
 }
 
 interface TmdbMoviePayload {
   id: number;
+  status?: string;
+  title?: string;
+  overview?: string;
+  tagline?: string;
   release_date?: string;
+  original_title?: string;
+  original_language?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  images?: {
+    posters: Array<{ file_path: string; iso_639_1: string | null }>;
+    backdrops: Array<{ file_path: string; iso_639_1: string | null }>;
+  };
+  translations?: {
+    translations: Array<{
+      iso_639_1: string;
+      iso_3166_1: string;
+      data: {
+        title?: string;
+        overview?: string;
+        tagline?: string;
+      };
+    }>;
+  };
+  credits?: {
+    cast: Array<{
+      id: number;
+      name: string;
+      character?: string;
+      profile_path?: string | null;
+    }>;
+    crew: Array<{
+      id: number;
+      name: string;
+      job?: string;
+    }>;
+  };
 }
 
 interface TmdbTvPayload {
@@ -47,6 +84,8 @@ export class TmdbHttpClient {
     url.searchParams.set("language", this.options.defaultLanguage);
     if (request.params.type === "movie") {
       url.searchParams.set("region", this.options.defaultRegion);
+      url.searchParams.set("append_to_response", "translations,credits,images");
+      url.searchParams.set("include_image_language", "fr,en,null");
     }
 
     const controller = new AbortController();
@@ -80,6 +119,10 @@ export class TmdbHttpClient {
 
   async getPopularTv(): Promise<TmdbListResponse<TmdbTvPayload>> {
     return this.getList<TmdbTvPayload>("tv/popular", false);
+  }
+
+  getImageUrl(filePath: string): string {
+    return `${this.options.imageBaseUrl.replace(/\/$/, "")}/${filePath.replace(/^\//, "")}`;
   }
 
   private resolvePath(type: string, externalId: number | string): string {

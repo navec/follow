@@ -8,7 +8,26 @@ describe("TmdbHttpClient", () => {
       ok: true,
       json: vi.fn().mockResolvedValue({
         id: 11,
+        status: "Released",
+        title: "La Guerre des étoiles",
+        overview: "Il y a bien longtemps...",
+        tagline: "Que la Force soit avec vous.",
         release_date: "1977-05-25",
+        images: {
+          posters: [{ file_path: "/poster.jpg", iso_639_1: "fr" }],
+          backdrops: [{ file_path: "/backdrop.jpg", iso_639_1: null }],
+        },
+        credits: {
+          cast: [
+            {
+              id: 1,
+              name: "Mark Hamill",
+              character: "Luke Skywalker",
+              profile_path: "/mark-hamill.jpg",
+            },
+          ],
+          crew: [],
+        },
       }),
     });
     const client = new TmdbHttpClient({
@@ -16,6 +35,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -31,11 +51,30 @@ describe("TmdbHttpClient", () => {
 
     expect(result).toEqual({
       id: 11,
+      status: "Released",
+      title: "La Guerre des étoiles",
+      overview: "Il y a bien longtemps...",
+      tagline: "Que la Force soit avec vous.",
       release_date: "1977-05-25",
+      images: {
+        posters: [{ file_path: "/poster.jpg", iso_639_1: "fr" }],
+        backdrops: [{ file_path: "/backdrop.jpg", iso_639_1: null }],
+      },
+      credits: {
+        cast: [
+          {
+            id: 1,
+            name: "Mark Hamill",
+            character: "Luke Skywalker",
+            profile_path: "/mark-hamill.jpg",
+          },
+        ],
+        crew: [],
+      },
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       expect.objectContaining({
-        href: "https://api.themoviedb.org/3/movie/11?language=fr-FR&region=FR",
+        href: "https://api.themoviedb.org/3/movie/11?language=fr-FR&region=FR&append_to_response=translations%2Ccredits%2Cimages&include_image_language=fr%2Cen%2Cnull",
       }),
       expect.objectContaining({
         method: "GET",
@@ -60,6 +99,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -101,6 +141,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -121,6 +162,22 @@ describe("TmdbHttpClient", () => {
         href: "https://api.themoviedb.org/3/tv/popular?language=fr-FR",
       }),
       expect.any(Object),
+    );
+  });
+
+  it("builds an original TMDB image URL from its source path", () => {
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "tmdb-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 5000,
+      fetchImpl: vi.fn() as never,
+    });
+
+    expect(client.getImageUrl("/poster.jpg")).toBe(
+      "https://image.tmdb.org/t/p/original/poster.jpg",
     );
   });
 });

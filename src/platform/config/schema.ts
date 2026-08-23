@@ -13,6 +13,10 @@ export const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(1).default("1h"),
   MEDIA_SYNC_TMDB_FEED_CRON: z.string().min(1).optional(),
   TMDB_BASE_URL: z.string().url().default("https://api.themoviedb.org/3"),
+  TMDB_IMAGE_BASE_URL: z
+    .string()
+    .url()
+    .default("https://image.tmdb.org/t/p/original"),
   TMDB_READ_ACCESS_TOKEN: z.string().min(1).optional(),
   TMDB_DEFAULT_LANGUAGE: z.string().min(1).default("fr-FR"),
   TMDB_DEFAULT_REGION: z.string().min(1).default("FR"),

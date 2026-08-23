@@ -40,6 +40,7 @@ Variables clés:
 - `PORT`
 - `TMDB_READ_ACCESS_TOKEN` (optionnel en local, requis pour appeler réellement TMDB)
 - `TMDB_BASE_URL` (défaut : `https://api.themoviedb.org/3`)
+- `TMDB_IMAGE_BASE_URL` (défaut : `https://image.tmdb.org/t/p/original`)
 - `TMDB_DEFAULT_LANGUAGE` et `TMDB_DEFAULT_REGION`
 - `TMDB_REQUEST_TIMEOUT_MS`
 - `MEDIA_SYNC_TMDB_FEED_CRON` (optionnel, expression cron pour un import feed TMDB)

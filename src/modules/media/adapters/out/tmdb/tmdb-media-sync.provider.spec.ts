@@ -71,6 +71,123 @@ describe("TmdbMediaSyncProvider", () => {
     });
   });
 
+  it("maps targeted movie catalog details into an enriched aggregate", async () => {
+    const client = {
+      getWork: vi.fn().mockResolvedValue({
+        id: 550,
+        release_date: "1999-10-15",
+        original_title: "Fight Club",
+        original_language: "en",
+        poster_path: "/poster.jpg",
+        backdrop_path: "/backdrop.jpg",
+        translations: {
+          translations: [
+            {
+              iso_639_1: "fr",
+              iso_3166_1: "FR",
+              data: {
+                title: "Fight Club",
+                overview: "Synopsis français",
+                tagline: "Première règle du Fight Club",
+              },
+            },
+            {
+              iso_639_1: "en",
+              iso_3166_1: "US",
+              data: {
+                title: "Fight Club",
+                overview: "English overview",
+                tagline: "Mischief. Mayhem. Soap.",
+              },
+            },
+            {
+              iso_639_1: "de",
+              iso_3166_1: "DE",
+              data: { title: "Fight Club" },
+            },
+          ],
+        },
+        credits: {
+          cast: [
+            {
+              id: 287,
+              name: "Brad Pitt",
+              character: "Tyler Durden",
+            },
+          ],
+          crew: [
+            { id: 7467, name: "David Fincher", job: "Director" },
+            { id: 7468, name: "Jim Uhls", job: "Screenplay" },
+          ],
+        },
+      }),
+      getPopularMovies: vi.fn(),
+      getPopularTv: vi.fn(),
+      getImageUrl: vi.fn(
+        (path: string) => `https://image.tmdb.org/t/p/original${path}`,
+      ),
+    };
+    const provider = new TmdbMediaSyncProvider(client);
+
+    const result = await provider.fetch({
+      provider: "tmdb",
+      params: { target: "work", externalId: 550, type: "movie" },
+    });
+
+    expect(result).toEqual([
+      {
+        source: { provider: "tmdb", sourceValue: "550" },
+        work: {
+          type: "movie",
+          releaseDate: "1999-10-15",
+          originalTitle: "Fight Club",
+          originalLanguage: "en",
+        },
+        translations: [
+          {
+            localeCode: "fr-FR",
+            language: "fr",
+            title: "Fight Club",
+            summary: "Synopsis français",
+            tagline: "Première règle du Fight Club",
+          },
+          {
+            localeCode: "en-US",
+            language: "en",
+            title: "Fight Club",
+            summary: "English overview",
+            tagline: "Mischief. Mayhem. Soap.",
+          },
+        ],
+        images: [
+          {
+            type: "poster",
+            sourceValue: "/poster.jpg",
+            url: "https://image.tmdb.org/t/p/original/poster.jpg",
+          },
+          {
+            type: "backdrop",
+            sourceValue: "/backdrop.jpg",
+            url: "https://image.tmdb.org/t/p/original/backdrop.jpg",
+          },
+        ],
+        contributors: [
+          {
+            sourceValue: "287",
+            name: "Brad Pitt",
+            role: "actor",
+            characterName: "Tyler Durden",
+          },
+          {
+            sourceValue: "7467",
+            name: "David Fincher",
+            role: "director",
+          },
+        ],
+      },
+    ]);
+  });
+
   it("maps the popular feed to movies and tv aggregates", async () => {
     const request: SyncRequest = {
       provider: "tmdb",

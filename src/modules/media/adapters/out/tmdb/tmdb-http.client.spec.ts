@@ -16,6 +16,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -35,7 +36,7 @@ describe("TmdbHttpClient", () => {
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       expect.objectContaining({
-        href: "https://api.themoviedb.org/3/movie/11?language=fr-FR&region=FR",
+        href: "https://api.themoviedb.org/3/movie/11?language=fr-FR&region=FR&append_to_response=translations%2Ccredits",
       }),
       expect.objectContaining({
         method: "GET",
@@ -60,6 +61,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -101,6 +103,7 @@ describe("TmdbHttpClient", () => {
       readAccessToken: "tmdb-token",
       defaultLanguage: "fr-FR",
       defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
       requestTimeoutMs: 5000,
       fetchImpl: fetchImpl as never,
     });
@@ -121,6 +124,22 @@ describe("TmdbHttpClient", () => {
         href: "https://api.themoviedb.org/3/tv/popular?language=fr-FR",
       }),
       expect.any(Object),
+    );
+  });
+
+  it("builds an original TMDB image URL from its source path", () => {
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "tmdb-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 5000,
+      fetchImpl: vi.fn() as never,
+    });
+
+    expect(client.getImageUrl("/poster.jpg")).toBe(
+      "https://image.tmdb.org/t/p/original/poster.jpg",
     );
   });
 });

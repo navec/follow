@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { Pool, PoolClient } from "pg";
+import type { Pool } from "pg";
 
 import type {
   CreateUserRecord,
@@ -8,6 +8,10 @@ import type {
 } from "@auth/application/ports/out/user-repository.port.js";
 import type { User } from "@auth/domain/entities/user.js";
 import { AuthConflictError } from "@auth/domain/errors/auth-errors.js";
+import {
+  acquirePostgresTransactionLock,
+  withPostgresTransaction,
+} from "@platform/database/pg-transaction.js";
 
 interface UserRow {
   id: string;
@@ -60,54 +64,51 @@ export class PgUserRepository implements UserRepositoryPort {
 
   async create(input: CreateUserRecord): Promise<User> {
     const id = randomUUID();
-    const client = await this.pool.connect();
 
     try {
-      await client.query("BEGIN");
-      await this.lockEmail(client, input.email);
+      return await withPostgresTransaction(
+        this.pool,
+        async (client) => {
+          await acquirePostgresTransactionLock(
+            client,
+            `auth:email:${input.email}`,
+          );
 
-      const existing = await client.query<{ id: string }>(
-        `SELECT id
-         FROM users
-         WHERE email = $1
-         LIMIT 1`,
-        [input.email],
+          const existing = await client.query<{ id: string }>(
+            `SELECT id
+             FROM users
+             WHERE email = $1
+             LIMIT 1`,
+            [input.email],
+          );
+          if ((existing.rowCount ?? 0) > 0) {
+            throw new AuthConflictError();
+          }
+
+          const result = await client.query<UserRow>(
+            `INSERT INTO users (id, email, password_hash)
+             VALUES ($1, $2, $3)
+             RETURNING id, email, password_hash, role, permissions, created_at, updated_at`,
+            [id, input.email, input.passwordHash],
+          );
+
+          const row = result.rows[0];
+          if (!row) {
+            throw new Error("Failed to create user");
+          }
+
+          return mapRow(row);
+        },
       );
-      if ((existing.rowCount ?? 0) > 0) {
-        throw new AuthConflictError();
-      }
-
-      const result = await client.query<UserRow>(
-        `INSERT INTO users (id, email, password_hash)
-         VALUES ($1, $2, $3)
-         RETURNING id, email, password_hash, role, permissions, created_at, updated_at`,
-        [id, input.email, input.passwordHash],
-      );
-
-      await client.query("COMMIT");
-
-      const row = result.rows[0];
-      if (!row) {
-        throw new Error("Failed to create user");
-      }
-
-      return mapRow(row);
     } catch (error) {
-      await client.query("ROLLBACK");
-
       if (isUniqueViolation(error)) {
         throw new AuthConflictError();
       }
 
       throw error;
-    } finally {
-      client.release();
     }
   }
 
-  private async lockEmail(client: PoolClient, email: string): Promise<void> {
-    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [email]);
-  }
 }
 
 function isUniqueViolation(error: unknown): error is { code: string } {

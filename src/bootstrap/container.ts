@@ -42,6 +42,7 @@ export function createContainer(
         readAccessToken: env.TMDB_READ_ACCESS_TOKEN,
         defaultLanguage: env.TMDB_DEFAULT_LANGUAGE,
         defaultRegion: env.TMDB_DEFAULT_REGION,
+        imageBaseUrl: env.TMDB_IMAGE_BASE_URL,
         requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
       })
     : {
@@ -59,6 +60,9 @@ export function createContainer(
         },
         async getPopularTv() {
           return { results: [] };
+        },
+        getImageUrl(filePath: string) {
+          return `${env.TMDB_IMAGE_BASE_URL.replace(/\/$/, "")}/${filePath.replace(/^\//, "")}`;
         },
       };
   const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient);

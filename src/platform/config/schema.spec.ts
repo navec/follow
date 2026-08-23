@@ -22,4 +22,10 @@ describe("envSchema", () => {
       envSchema.parse({ ...requiredEnv, LOG_LEVEL: "verbose" }),
     ).toThrow();
   });
+
+  it("provides the TMDB original image base URL", () => {
+    expect(envSchema.parse(requiredEnv).TMDB_IMAGE_BASE_URL).toBe(
+      "https://image.tmdb.org/t/p/original",
+    );
+  });
 });

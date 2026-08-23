@@ -27,6 +27,10 @@ describe("PgUserRepository", () => {
       }),
     ).rejects.toBeInstanceOf(AuthConflictError);
 
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining("pg_advisory_xact_lock"),
+      ["auth:email:race@example.com"],
+    );
     expect(client.query).toHaveBeenCalledWith("ROLLBACK");
     expect(client.release).toHaveBeenCalled();
   });

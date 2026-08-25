@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { TmdbHttpClient } from "@media/adapters/out/tmdb/tmdb-http.client.js";
+import {
+  TmdbHttpClient,
+  TmdbHttpError,
+} from "@media/adapters/out/tmdb/tmdb-http.client.js";
 
 describe("TmdbHttpClient", () => {
   it("calls movie details with bearer auth and localized params", async () => {
@@ -179,5 +182,103 @@ describe("TmdbHttpClient", () => {
     expect(client.getImageUrl("/poster.jpg")).toBe(
       "https://image.tmdb.org/t/p/original/poster.jpg",
     );
+  });
+
+  it("exposes a typed 404 without leaking the access token", async () => {
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "super-secret-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 5000,
+      fetchImpl: vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        headers: new Headers(),
+      }) as never,
+    });
+
+    const request = client.getWork({
+      provider: "tmdb",
+      params: { target: "work", externalId: 999, type: "movie" },
+    });
+
+    await expect(request).rejects.toBeInstanceOf(TmdbHttpError);
+    await expect(request).rejects.toMatchObject({ status: 404 });
+    await expect(request).rejects.not.toHaveProperty(
+      "message",
+      expect.stringContaining("super-secret-token"),
+    );
+  });
+
+  it("parses integer-second Retry-After on a typed 429", async () => {
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "tmdb-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 5000,
+      fetchImpl: vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        headers: new Headers({ "Retry-After": "7" }),
+      }) as never,
+    });
+
+    await expect(client.getPopularMovies()).rejects.toMatchObject({
+      status: 429,
+      retryAfterMs: 7000,
+    });
+  });
+
+  it("keeps server failures retryable as typed HTTP errors", async () => {
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "tmdb-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 5000,
+      fetchImpl: vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        headers: new Headers(),
+      }) as never,
+    });
+
+    await expect(client.getPopularTv()).rejects.toMatchObject({ status: 503 });
+  });
+
+  it("wraps request timeouts as retryable typed errors", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi.fn(
+      async (_url: URL, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new Error("aborted"));
+          });
+        }),
+    );
+    const client = new TmdbHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      readAccessToken: "tmdb-token",
+      defaultLanguage: "fr-FR",
+      defaultRegion: "FR",
+      imageBaseUrl: "https://image.tmdb.org/t/p/original",
+      requestTimeoutMs: 50,
+      fetchImpl: fetchImpl as never,
+    });
+
+    const request = client.getPopularMovies();
+    const rejection = expect(request).rejects.toMatchObject({
+      status: undefined,
+    });
+    await vi.advanceTimersByTimeAsync(50);
+
+    await rejection;
+    await expect(request).rejects.toBeInstanceOf(TmdbHttpError);
+    vi.useRealTimers();
   });
 });

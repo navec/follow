@@ -144,4 +144,123 @@ describe("TMDB catalog sync schema integration", () => {
       pool.query("SELECT COUNT(*)::int AS count FROM tmdb_movie_inventory_staging"),
     ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   });
+
+  it("claims only eligible rows and applies completion, retry, and terminal outcomes", async () => {
+    const now = new Date("2026-08-25T12:00:00.000Z");
+    const leaseUntil = new Date("2026-08-25T12:05:00.000Z");
+    await pool.query(
+      `INSERT INTO tmdb_movie_sync_queue
+         (tmdb_id, popularity, status, attempts, next_attempt_at,
+          claimed_at, lease_until, last_seen_export_date,
+          consecutive_export_misses)
+       VALUES
+         (1, 100, 'pending', 0, NULL, NULL, NULL, '2026-08-24', 0),
+         (2, 90, 'retry', 1, '2026-08-25 11:00:00+00', NULL, NULL, '2026-08-24', 0),
+         (3, 1000, 'retry', 1, '2026-08-25 13:00:00+00', NULL, NULL, '2026-08-24', 0),
+         (4, 900, 'dead', 3, NULL, NULL, NULL, '2026-08-24', 0),
+         (5, 800, 'completed', 1, NULL, NULL, NULL, '2026-08-24', 0),
+         (6, 700, 'processing', 1, NULL, '2026-08-25 11:59:00+00', '2026-08-25 12:10:00+00', '2026-08-24', 0),
+         (7, 80, 'processing', 1, NULL, '2026-08-25 11:00:00+00', '2026-08-25 11:30:00+00', '2026-08-24', 0),
+         (8, 1100, 'pending', 0, NULL, NULL, NULL, '2026-08-22', 2)`,
+    );
+
+    await expect(repository.requeueExpiredLeases(now)).resolves.toBe(1);
+    const claims = await repository.claimBatch({ limit: 3, now, leaseUntil });
+
+    expect(claims).toEqual([
+      { tmdbId: 1, popularity: 100, attempts: 1, claimedAt: now },
+      { tmdbId: 2, popularity: 90, attempts: 2, claimedAt: now },
+      { tmdbId: 7, popularity: 80, attempts: 2, claimedAt: now },
+    ]);
+
+    const refreshAt = new Date("2026-08-25T12:00:05.000Z");
+    await repository.requestRefresh([1], refreshAt);
+    await repository.completeMovie(
+      1,
+      now,
+      new Date("2026-08-25T12:00:10.000Z"),
+    );
+    await repository.retryMovie({
+      tmdbId: 2,
+      error: "temporary",
+      nextAttemptAt: new Date("2026-08-25T12:01:00.000Z"),
+      maxAttempts: 3,
+    });
+    await repository.retryMovie({
+      tmdbId: 7,
+      error: "attempt limit",
+      nextAttemptAt: new Date("2026-08-25T12:01:00.000Z"),
+      maxAttempts: 2,
+    });
+    await repository.markMovieUnavailable(6, "TMDB returned 404");
+
+    const outcomes = await pool.query(
+      `SELECT tmdb_id::int AS tmdb_id, status, next_attempt_at, last_error,
+              claimed_at, lease_until
+       FROM tmdb_movie_sync_queue
+       WHERE tmdb_id IN (1, 2, 6, 7)
+       ORDER BY tmdb_id`,
+    );
+    expect(outcomes.rows).toEqual([
+      {
+        tmdb_id: 1,
+        status: "pending",
+        next_attempt_at: null,
+        last_error: null,
+        claimed_at: null,
+        lease_until: null,
+      },
+      {
+        tmdb_id: 2,
+        status: "retry",
+        next_attempt_at: new Date("2026-08-25T12:01:00.000Z"),
+        last_error: "temporary",
+        claimed_at: null,
+        lease_until: null,
+      },
+      {
+        tmdb_id: 6,
+        status: "dead",
+        next_attempt_at: null,
+        last_error: "TMDB returned 404",
+        claimed_at: null,
+        lease_until: null,
+      },
+      {
+        tmdb_id: 7,
+        status: "dead",
+        next_attempt_at: null,
+        last_error: "attempt limit",
+        claimed_at: null,
+        lease_until: null,
+      },
+    ]);
+  });
+
+  it("returns disjoint ids from concurrent claims", async () => {
+    await pool.query(
+      `INSERT INTO tmdb_movie_sync_queue
+         (tmdb_id, popularity, last_seen_export_date)
+       VALUES
+         (101, 40, '2026-08-24'),
+         (102, 30, '2026-08-24'),
+         (103, 20, '2026-08-24'),
+         (104, 10, '2026-08-24')`,
+    );
+    const now = new Date("2026-08-25T12:00:00.000Z");
+    const leaseUntil = new Date("2026-08-25T12:05:00.000Z");
+
+    const [first, second] = await Promise.all([
+      repository.claimBatch({ limit: 2, now, leaseUntil }),
+      repository.claimBatch({ limit: 2, now, leaseUntil }),
+    ]);
+
+    const firstIds = first.map(({ tmdbId }) => tmdbId);
+    const secondIds = second.map(({ tmdbId }) => tmdbId);
+    expect(firstIds).toHaveLength(2);
+    expect(secondIds).toHaveLength(2);
+    expect(new Set([...firstIds, ...secondIds])).toEqual(
+      new Set([101, 102, 103, 104]),
+    );
+  });
 });

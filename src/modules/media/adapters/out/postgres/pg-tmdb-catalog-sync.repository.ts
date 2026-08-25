@@ -1,6 +1,9 @@
 import type { Pool } from "pg";
 
-import type { TmdbInventoryMovie } from "@media/application/models/tmdb-catalog-sync.js";
+import type {
+  ClaimedTmdbMovie,
+  TmdbInventoryMovie,
+} from "@media/application/models/tmdb-catalog-sync.js";
 
 interface JobLockRow {
   acquired: boolean;
@@ -13,6 +16,13 @@ interface ReconciliationCountRow {
 
 interface ChangesStateRow {
   last_completed_changes_at: Date | null;
+}
+
+interface ClaimedMovieRow {
+  tmdb_id: string;
+  popularity: number;
+  attempts: number;
+  claimed_at: Date;
 }
 
 type CatalogPool = Pick<Pool, "connect" | "query">;
@@ -191,6 +201,141 @@ export class PgTmdbCatalogSyncRepository {
            updated_at = NOW()
        WHERE singleton = TRUE`,
       [completedAt],
+    );
+  }
+
+  async requeueExpiredLeases(now: Date): Promise<number> {
+    const result = await this.pool.query(
+      `UPDATE tmdb_movie_sync_queue
+       SET status = 'retry',
+           next_attempt_at = $1,
+           claimed_at = NULL,
+           lease_until = NULL,
+           updated_at = $1
+       WHERE status = 'processing'
+         AND lease_until <= $1`,
+      [now],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async claimBatch(input: {
+    limit: number;
+    now: Date;
+    leaseUntil: Date;
+  }): Promise<ReadonlyArray<ClaimedTmdbMovie>> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query("BEGIN");
+      const result = await client.query<ClaimedMovieRow>(
+        `WITH selected AS (
+           SELECT tmdb_id
+           FROM tmdb_movie_sync_queue
+           WHERE status IN ('pending', 'retry')
+             AND (next_attempt_at IS NULL OR next_attempt_at <= $1)
+             AND consecutive_export_misses < 2
+           ORDER BY popularity DESC, tmdb_id
+           FOR UPDATE SKIP LOCKED
+           LIMIT $2
+         )
+         UPDATE tmdb_movie_sync_queue AS queue
+         SET status = 'processing',
+             attempts = attempts + 1,
+             claimed_at = $1,
+             lease_until = $3,
+             updated_at = $1
+         FROM selected
+         WHERE queue.tmdb_id = selected.tmdb_id
+         RETURNING queue.tmdb_id,
+                   queue.popularity,
+                   queue.attempts,
+                   queue.claimed_at`,
+        [input.now, input.limit, input.leaseUntil],
+      );
+      await client.query("COMMIT");
+
+      return result.rows
+        .map((row) => ({
+          tmdbId: Number(row.tmdb_id),
+          popularity: row.popularity,
+          attempts: row.attempts,
+          claimedAt: row.claimed_at,
+        }))
+        .sort(
+          (left, right) =>
+            right.popularity - left.popularity || left.tmdbId - right.tmdbId,
+        );
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async completeMovie(
+    tmdbId: number,
+    claimedAt: Date,
+    completedAt: Date,
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE tmdb_movie_sync_queue
+       SET status = CASE
+             WHEN refresh_requested_at > claimed_at THEN 'pending'
+             ELSE 'completed'
+           END,
+           next_attempt_at = NULL,
+           claimed_at = NULL,
+           lease_until = NULL,
+           last_error = NULL,
+           last_hydrated_at = $3,
+           updated_at = $3
+       WHERE tmdb_id = $1
+         AND status = 'processing'
+         AND claimed_at = $2`,
+      [tmdbId, claimedAt, completedAt],
+    );
+  }
+
+  async retryMovie(input: {
+    tmdbId: number;
+    error: string;
+    nextAttemptAt: Date;
+    maxAttempts: number;
+  }): Promise<void> {
+    await this.pool.query(
+      `UPDATE tmdb_movie_sync_queue
+       SET status = CASE
+             WHEN attempts < $4 THEN 'retry'
+             ELSE 'dead'
+           END,
+           next_attempt_at = CASE
+             WHEN attempts < $4 THEN $3::timestamptz
+             ELSE NULL
+           END,
+           claimed_at = NULL,
+           lease_until = NULL,
+           last_error = $2,
+           updated_at = NOW()
+       WHERE tmdb_id = $1
+         AND status = 'processing'`,
+      [input.tmdbId, input.error, input.nextAttemptAt, input.maxAttempts],
+    );
+  }
+
+  async markMovieUnavailable(tmdbId: number, error: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE tmdb_movie_sync_queue
+       SET status = 'dead',
+           next_attempt_at = NULL,
+           claimed_at = NULL,
+           lease_until = NULL,
+           last_error = $2,
+           updated_at = NOW()
+       WHERE tmdb_id = $1
+         AND status = 'processing'`,
+      [tmdbId, error],
     );
   }
 }

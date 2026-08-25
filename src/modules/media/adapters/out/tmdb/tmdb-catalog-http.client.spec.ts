@@ -34,7 +34,10 @@ async function collectInventory(
 
 function createClient(fetchImpl: typeof fetch) {
   return new TmdbCatalogHttpClient({
+    baseUrl: "https://api.themoviedb.org/3",
     exportBaseUrl: "https://files.tmdb.org/p/exports",
+    readAccessToken: "tmdb-token",
+    requestTimeoutMs: 5000,
     fetchImpl,
   });
 }
@@ -158,5 +161,75 @@ describe("TmdbCatalogHttpClient", () => {
       );
 
     await expect(collectInventory(createClient(fetchImpl))).rejects.toThrow();
+  });
+
+  it("requests and maps one authenticated movie change page", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        page: 2,
+        total_pages: 4,
+        results: [
+          { id: 11 },
+          { id: 0 },
+          { id: 12.5 },
+          { id: Number.MAX_SAFE_INTEGER + 1 },
+          { id: 14 },
+        ],
+      }),
+    });
+    const client = createClient(fetchImpl);
+
+    await expect(
+      client.getChangedMovieIds({
+        startDate: "2026-08-18",
+        endDate: "2026-08-24",
+        page: 2,
+      }),
+    ).resolves.toEqual({ ids: [11, 14], page: 2, totalPages: 4 });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: "https://api.themoviedb.org/3/movie/changes?start_date=2026-08-18&end_date=2026-08-24&page=2",
+      }),
+      expect.objectContaining({
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: "Bearer tmdb-token",
+        },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it("aborts a change request after the configured timeout", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi.fn(
+      async (_url: URL, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new Error("aborted"));
+          });
+        }),
+    );
+    const client = new TmdbCatalogHttpClient({
+      baseUrl: "https://api.themoviedb.org/3",
+      exportBaseUrl: "https://files.tmdb.org/p/exports",
+      readAccessToken: "tmdb-token",
+      requestTimeoutMs: 50,
+      fetchImpl: fetchImpl as never,
+    });
+
+    const request = client.getChangedMovieIds({
+      startDate: "2026-08-18",
+      endDate: "2026-08-24",
+      page: 1,
+    });
+    const rejection = expect(request).rejects.toThrow("aborted");
+    await vi.advanceTimersByTimeAsync(50);
+
+    await rejection;
+    vi.useRealTimers();
   });
 });

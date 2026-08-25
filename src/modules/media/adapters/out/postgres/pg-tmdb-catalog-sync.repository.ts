@@ -11,6 +11,10 @@ interface ReconciliationCountRow {
   updated: string;
 }
 
+interface ChangesStateRow {
+  last_completed_changes_at: Date | null;
+}
+
 type CatalogPool = Pick<Pool, "connect" | "query">;
 
 export class PgTmdbCatalogSyncRepository {
@@ -143,5 +147,50 @@ export class PgTmdbCatalogSyncRepository {
     } finally {
       client.release();
     }
+  }
+
+  async getLastCompletedChangesAt(): Promise<Date | undefined> {
+    const result = await this.pool.query<ChangesStateRow>(
+      `SELECT last_completed_changes_at
+       FROM tmdb_catalog_sync_state
+       WHERE singleton = TRUE`,
+    );
+    return result.rows[0]?.last_completed_changes_at ?? undefined;
+  }
+
+  async requestRefresh(
+    ids: ReadonlyArray<number>,
+    requestedAt: Date,
+  ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.pool.query(
+      `UPDATE tmdb_movie_sync_queue
+       SET status = CASE
+             WHEN status = 'processing' THEN status
+             ELSE 'pending'
+           END,
+           next_attempt_at = CASE
+             WHEN status = 'processing' THEN next_attempt_at
+             ELSE NULL
+           END,
+           refresh_requested_at = $2,
+           updated_at = $2
+       WHERE tmdb_id = ANY($1::bigint[])
+         AND consecutive_export_misses < 2`,
+      [ids, requestedAt],
+    );
+  }
+
+  async completeChangesWindow(completedAt: Date): Promise<void> {
+    await this.pool.query(
+      `UPDATE tmdb_catalog_sync_state
+       SET last_completed_changes_at = $1,
+           updated_at = NOW()
+       WHERE singleton = TRUE`,
+      [completedAt],
+    );
   }
 }

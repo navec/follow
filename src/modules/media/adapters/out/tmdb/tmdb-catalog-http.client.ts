@@ -2,18 +2,75 @@ import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
 
-import type { TmdbInventoryMovie } from "@media/application/models/tmdb-catalog-sync.js";
+import type {
+  TmdbChangePage,
+  TmdbInventoryMovie,
+} from "@media/application/models/tmdb-catalog-sync.js";
+import type { TmdbCatalogSourcePort } from "@media/application/ports/out/tmdb-catalog-source.port.js";
 
 interface TmdbCatalogHttpClientOptions {
+  baseUrl: string;
   exportBaseUrl: string;
+  readAccessToken: string;
+  requestTimeoutMs: number;
   fetchImpl?: typeof fetch;
 }
 
-export class TmdbCatalogHttpClient {
+interface TmdbChangesPayload {
+  page: number;
+  total_pages: number;
+  results: Array<{ id: number }>;
+}
+
+export class TmdbCatalogHttpClient implements TmdbCatalogSourcePort {
   private readonly fetchImpl: typeof fetch;
 
   constructor(private readonly options: TmdbCatalogHttpClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async getChangedMovieIds(input: {
+    startDate: string;
+    endDate: string;
+    page: number;
+  }): Promise<TmdbChangePage> {
+    const baseUrl = this.options.baseUrl.endsWith("/")
+      ? this.options.baseUrl
+      : `${this.options.baseUrl}/`;
+    const url = new URL("movie/changes", baseUrl);
+    url.searchParams.set("start_date", input.startDate);
+    url.searchParams.set("end_date", input.endDate);
+    url.searchParams.set("page", String(input.page));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, this.options.requestTimeoutMs);
+
+    try {
+      const response = await this.fetchImpl(url, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          Authorization: `Bearer ${this.options.readAccessToken}`,
+        },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`TMDB changes request failed: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as TmdbChangesPayload;
+      return {
+        ids: payload.results
+          .map(({ id }) => id)
+          .filter((id) => Number.isSafeInteger(id) && id > 0),
+        page: payload.page,
+        totalPages: payload.total_pages,
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async *streamMovieInventory(

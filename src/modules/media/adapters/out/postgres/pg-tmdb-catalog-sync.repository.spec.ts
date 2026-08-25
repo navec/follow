@@ -149,4 +149,59 @@ describe("PgTmdbCatalogSyncRepository", () => {
     );
     expect(client.release).toHaveBeenCalledOnce();
   });
+
+  it("reads the last completed change timestamp", async () => {
+    const completedAt = new Date("2026-08-24T12:00:00.000Z");
+    const pool = {
+      query: vi.fn().mockResolvedValue({
+        rows: [{ last_completed_changes_at: completedAt }],
+        rowCount: 1,
+      }),
+      connect: vi.fn(),
+    };
+    const repository = new PgTmdbCatalogSyncRepository(pool as never);
+
+    await expect(repository.getLastCompletedChangesAt()).resolves.toEqual(
+      completedAt,
+    );
+  });
+
+  it("requests refresh only for active known inventory rows", async () => {
+    const pool = {
+      query: vi.fn().mockResolvedValue({ rows: [], rowCount: 2 }),
+      connect: vi.fn(),
+    };
+    const repository = new PgTmdbCatalogSyncRepository(pool as never);
+    const requestedAt = new Date("2026-08-25T12:00:00.000Z");
+
+    await repository.requestRefresh([11, 14], requestedAt);
+
+    const [sql, values] = pool.query.mock.calls[0] as unknown as [
+      string,
+      unknown[],
+    ];
+    expect(sql).toContain("tmdb_id = ANY($1::bigint[])");
+    expect(sql).toContain("consecutive_export_misses < 2");
+    expect(sql).toContain("WHEN status = 'processing' THEN status");
+    expect(sql).toContain("ELSE 'pending'");
+    expect(sql).toContain("next_attempt_at = CASE");
+    expect(sql).toContain("refresh_requested_at = $2");
+    expect(values).toEqual([[11, 14], requestedAt]);
+  });
+
+  it("records a completed changes window", async () => {
+    const pool = {
+      query: vi.fn().mockResolvedValue({ rows: [], rowCount: 1 }),
+      connect: vi.fn(),
+    };
+    const repository = new PgTmdbCatalogSyncRepository(pool as never);
+    const completedAt = new Date("2026-08-25T12:00:00.000Z");
+
+    await repository.completeChangesWindow(completedAt);
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining("last_completed_changes_at = $1"),
+      [completedAt],
+    );
+  });
 });

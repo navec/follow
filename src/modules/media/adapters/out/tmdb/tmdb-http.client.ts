@@ -1,3 +1,5 @@
+import { TmdbProviderError } from "@media/application/errors/tmdb-provider.error.js";
+
 interface TmdbHttpClientOptions {
   baseUrl: string;
   readAccessToken: string;
@@ -69,6 +71,17 @@ type TmdbWorkSyncRequest = {
   };
 };
 
+export class TmdbHttpError extends TmdbProviderError {
+  constructor(
+    message: string,
+    status?: number,
+    retryAfterMs?: number,
+  ) {
+    super(message, status, retryAfterMs);
+    this.name = "TmdbHttpError";
+  }
+}
+
 export class TmdbHttpClient {
   private readonly fetchImpl: typeof fetch;
 
@@ -88,29 +101,7 @@ export class TmdbHttpClient {
       url.searchParams.set("include_image_language", "fr,en,null");
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, this.options.requestTimeoutMs);
-
-    try {
-      const response = await this.fetchImpl(url, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          Authorization: `Bearer ${this.options.readAccessToken}`,
-        },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`TMDB request failed: ${response.status}`);
-      }
-
-      return (await response.json()) as TmdbWorkPayload;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    return this.requestJson<TmdbWorkPayload>(url);
   }
 
   async getPopularMovies(): Promise<TmdbListResponse<TmdbMoviePayload>> {
@@ -152,6 +143,10 @@ export class TmdbHttpClient {
       url.searchParams.set("region", this.options.defaultRegion);
     }
 
+    return this.requestJson<TmdbListResponse<TItem>>(url);
+  }
+
+  private async requestJson<TResult>(url: URL): Promise<TResult> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -168,12 +163,32 @@ export class TmdbHttpClient {
       });
 
       if (!response.ok) {
-        throw new Error(`TMDB request failed: ${response.status}`);
+        throw new TmdbHttpError(
+          `TMDB request failed: ${response.status}`,
+          response.status,
+          parseRetryAfterMs(response.headers.get("Retry-After")),
+        );
       }
 
-      return (await response.json()) as TmdbListResponse<TItem>;
+      return (await response.json()) as TResult;
+    } catch (error) {
+      if (error instanceof TmdbHttpError) {
+        throw error;
+      }
+      if (controller.signal.aborted) {
+        throw new TmdbHttpError("TMDB request timed out");
+      }
+      throw new TmdbHttpError("TMDB request failed");
     } finally {
       clearTimeout(timeoutId);
     }
   }
+}
+
+function parseRetryAfterMs(value: string | null): number | undefined {
+  if (!value || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  return Number(value) * 1000;
 }

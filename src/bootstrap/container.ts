@@ -7,6 +7,8 @@ import { JwtTokenService } from "@auth/adapters/out/security/jwt-token-service.j
 import { createAuthModule } from "@auth/auth.module.js";
 import { MangadexMediaSyncProvider } from "@media/adapters/out/mangadex/mangadex-media-sync.provider.js";
 import { PgMediaSyncRepository } from "@media/adapters/out/postgres/pg-media-sync.repository.js";
+import { PgTmdbCatalogSyncRepository } from "@media/adapters/out/postgres/pg-tmdb-catalog-sync.repository.js";
+import { TmdbCatalogHttpClient } from "@media/adapters/out/tmdb/tmdb-catalog-http.client.js";
 import { TmdbHttpClient } from "@media/adapters/out/tmdb/tmdb-http.client.js";
 import { TmdbMediaSyncProvider } from "@media/adapters/out/tmdb/tmdb-media-sync.provider.js";
 import { createMediaModule } from "@media/media.module.js";
@@ -18,6 +20,7 @@ import { ZodBodyValidator } from "@shared/http/validation/zod-validator.js";
 
 interface ContainerOptions {
   logger?: Logger;
+  fetchImpl?: typeof fetch;
 }
 
 export function createContainer(
@@ -44,6 +47,7 @@ export function createContainer(
         defaultRegion: env.TMDB_DEFAULT_REGION,
         imageBaseUrl: env.TMDB_IMAGE_BASE_URL,
         requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
       })
     : {
         async getWork(request: {
@@ -68,6 +72,18 @@ export function createContainer(
   const tmdbMediaSyncProvider = new TmdbMediaSyncProvider(tmdbClient, {
     defaultLocale: env.TMDB_DEFAULT_LANGUAGE,
   });
+  const tmdbCatalogRepository = env.TMDB_READ_ACCESS_TOKEN
+    ? new PgTmdbCatalogSyncRepository(pgPool)
+    : undefined;
+  const tmdbCatalogSource = env.TMDB_READ_ACCESS_TOKEN
+    ? new TmdbCatalogHttpClient({
+        baseUrl: env.TMDB_BASE_URL,
+        exportBaseUrl: env.TMDB_EXPORT_BASE_URL,
+        readAccessToken: env.TMDB_READ_ACCESS_TOKEN,
+        requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+      })
+    : undefined;
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
     async getWorkOrFeed(request: {
       provider: "mangadex";
@@ -93,7 +109,29 @@ export function createContainer(
     providers: [tmdbMediaSyncProvider, mangadexMediaSyncProvider],
     repository: mediaSyncRepository,
     http: { bodyValidator },
-    scheduler: { tmdbFeedCron: env.MEDIA_SYNC_TMDB_FEED_CRON },
+    scheduler: {
+      tmdbFeedCron: env.MEDIA_SYNC_TMDB_FEED_CRON,
+      tmdbCatalogExportCron: env.MEDIA_SYNC_TMDB_CATALOG_EXPORT_CRON,
+      tmdbCatalogChangesCron: env.MEDIA_SYNC_TMDB_CATALOG_CHANGES_CRON,
+      tmdbCatalogWorkerCron: env.MEDIA_SYNC_TMDB_CATALOG_WORKER_CRON,
+    },
+    catalog:
+      tmdbCatalogSource && tmdbCatalogRepository
+        ? {
+            source: tmdbCatalogSource,
+            repository: tmdbCatalogRepository,
+            stageBatchSize: env.TMDB_CATALOG_STAGE_BATCH_SIZE,
+            worker: {
+              batchSize: env.TMDB_CATALOG_WORKER_BATCH_SIZE,
+              leaseSeconds: env.TMDB_CATALOG_LEASE_SECONDS,
+              requestsPerSecond: env.TMDB_CATALOG_REQUESTS_PER_SECOND,
+              concurrency: env.TMDB_CATALOG_CONCURRENCY,
+              maxAttempts: env.TMDB_CATALOG_MAX_ATTEMPTS,
+              retryBaseMs: env.TMDB_CATALOG_RETRY_BASE_MS,
+              retryMaxMs: env.TMDB_CATALOG_RETRY_MAX_MS,
+            },
+          }
+        : undefined,
   });
   const mediaApi = media.api;
   const logger = options.logger ?? createLogger(env);

@@ -104,10 +104,7 @@ export function createMediaModule({
     scheduledJobs: createMediaSyncJobs({
       syncPopularFeed: () =>
         syncMedia.execute(
-          {
-            provider: "tmdb",
-            params: { target: "feed", feed: "popular" },
-          },
+          { provider: "tmdb", params: { target: "feed", feed: "popular" } },
           systemMediaActor,
         ),
       reconcileCatalog,

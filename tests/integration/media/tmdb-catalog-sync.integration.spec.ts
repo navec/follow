@@ -83,6 +83,12 @@ describe("TMDB catalog synchronization integration", () => {
       "images",
       "locales",
     ]);
+    await context.pgPool.query(
+      `UPDATE tmdb_catalog_sync_state
+       SET last_completed_export_date = NULL,
+           last_completed_changes_at = NULL,
+           updated_at = NOW()`,
+    );
   });
 
   afterAll(async () => {
@@ -112,25 +118,43 @@ describe("TMDB catalog synchronization integration", () => {
 
     await expect(
       context.pgPool.query(
-        `SELECT COUNT(DISTINCT w.id)::int AS works,
+        `SELECT sw.source_value::int AS tmdb_id,
                 COUNT(DISTINCT wi.locale_code)::int AS translations,
                 COUNT(DISTINCT wc.contributor_id)::int AS cast,
                 COUNT(DISTINCT wimg.image_id)::int AS gallery_images,
                 COUNT(DISTINCT ci.image_id)::int AS profile_images
          FROM works w
+         JOIN source_works sw ON sw.work_id = w.id
+         JOIN sources s ON s.id = sw.source_id AND s.name = 'tmdb'
          JOIN work_i18n wi ON wi.work_id = w.id
          JOIN work_contributors wc ON wc.work_id = w.id
          JOIN work_images wimg ON wimg.work_id = w.id
-         JOIN contributor_images ci ON ci.contributor_id = wc.contributor_id`,
+         JOIN contributor_images ci ON ci.contributor_id = wc.contributor_id
+         GROUP BY sw.source_value
+         ORDER BY sw.source_value::int`,
       ),
     ).resolves.toMatchObject({
       rows: [
         {
-          works: 3,
+          tmdb_id: 101,
           translations: 2,
-          cast: 3,
-          gallery_images: 6,
-          profile_images: 3,
+          cast: 1,
+          gallery_images: 2,
+          profile_images: 1,
+        },
+        {
+          tmdb_id: 102,
+          translations: 2,
+          cast: 1,
+          gallery_images: 2,
+          profile_images: 1,
+        },
+        {
+          tmdb_id: 103,
+          translations: 2,
+          cast: 1,
+          gallery_images: 2,
+          profile_images: 1,
         },
       ],
     });

@@ -145,6 +145,57 @@ describe("TMDB catalog sync schema integration", () => {
     ).resolves.toMatchObject({ rows: [{ count: 0 }] });
   });
 
+  it("ignores replayed or older inventory dates without adding misses or regressing state", async () => {
+    await pool.query(
+      `INSERT INTO tmdb_movie_sync_queue
+         (tmdb_id, popularity, status, last_seen_export_date,
+          consecutive_export_misses)
+       VALUES (10, 1, 'completed', '2026-08-24', 1)`,
+    );
+    await pool.query(
+      `UPDATE tmdb_catalog_sync_state
+       SET last_completed_export_date = '2026-08-24'`,
+    );
+
+    for (const exportDate of ["2026-08-24", "2026-08-23"]) {
+      await repository.stageInventoryBatch(exportDate, [
+        { tmdbId: 20, popularity: 99 },
+      ]);
+      await expect(repository.reconcileInventory(exportDate)).resolves.toEqual({
+        inserted: 0,
+        updated: 0,
+        missing: 0,
+      });
+    }
+
+    await expect(
+      pool.query(
+        `SELECT tmdb_id::int AS tmdb_id, popularity,
+                last_seen_export_date::text AS last_seen_export_date,
+                consecutive_export_misses
+         FROM tmdb_movie_sync_queue
+         ORDER BY tmdb_id`,
+      ),
+    ).resolves.toMatchObject({
+      rows: [
+        {
+          tmdb_id: 10,
+          popularity: 1,
+          last_seen_export_date: "2026-08-24",
+          consecutive_export_misses: 1,
+        },
+      ],
+    });
+    await expect(
+      pool.query(
+        `SELECT last_completed_export_date::text AS last_completed_export_date
+         FROM tmdb_catalog_sync_state`,
+      ),
+    ).resolves.toMatchObject({
+      rows: [{ last_completed_export_date: "2026-08-24" }],
+    });
+  });
+
   it("claims only eligible rows and applies completion, retry, and terminal outcomes", async () => {
     const now = new Date("2026-08-25T12:00:00.000Z");
     const leaseUntil = new Date("2026-08-25T12:05:00.000Z");
@@ -182,17 +233,23 @@ describe("TMDB catalog sync schema integration", () => {
     );
     await repository.retryMovie({
       tmdbId: 2,
+      claimedAt: now,
       error: "temporary",
       nextAttemptAt: new Date("2026-08-25T12:01:00.000Z"),
       maxAttempts: 3,
     });
     await repository.retryMovie({
       tmdbId: 7,
+      claimedAt: now,
       error: "attempt limit",
       nextAttemptAt: new Date("2026-08-25T12:01:00.000Z"),
       maxAttempts: 2,
     });
-    await repository.markMovieUnavailable(6, "TMDB returned 404");
+    await repository.markMovieUnavailable(
+      6,
+      new Date("2026-08-25T11:59:00.000Z"),
+      "TMDB returned 404",
+    );
 
     const outcomes = await pool.query(
       `SELECT tmdb_id::int AS tmdb_id, status, next_attempt_at, last_error,
@@ -235,6 +292,106 @@ describe("TMDB catalog sync schema integration", () => {
         lease_until: null,
       },
     ]);
+  });
+
+  it("fences late retry and unavailable outcomes from an expired claim", async () => {
+    const firstClaimAt = new Date("2026-08-25T12:00:00.000Z");
+    const secondClaimAt = new Date("2026-08-25T12:10:00.000Z");
+    await pool.query(
+      `INSERT INTO tmdb_movie_sync_queue
+         (tmdb_id, popularity, status, attempts, claimed_at, lease_until,
+          last_seen_export_date)
+       VALUES
+         (50, 10, 'processing', 1, $1, '2026-08-25 12:05:00+00', '2026-08-24'),
+         (60, 9, 'processing', 1, $1, '2026-08-25 12:05:00+00', '2026-08-24')`,
+      [firstClaimAt],
+    );
+    await repository.requeueExpiredLeases(secondClaimAt);
+    await repository.claimBatch({
+      limit: 2,
+      now: secondClaimAt,
+      leaseUntil: new Date("2026-08-25T12:15:00.000Z"),
+    });
+
+    await repository.retryMovie({
+      tmdbId: 50,
+      claimedAt: firstClaimAt,
+      error: "late retry",
+      nextAttemptAt: new Date("2026-08-25T12:20:00.000Z"),
+      maxAttempts: 8,
+    });
+    await repository.markMovieUnavailable(60, firstClaimAt, "late 404");
+
+    await expect(
+      pool.query(
+        `SELECT tmdb_id::int AS tmdb_id, status, attempts, claimed_at, last_error
+         FROM tmdb_movie_sync_queue
+         WHERE tmdb_id IN (50, 60)
+         ORDER BY tmdb_id`,
+      ),
+    ).resolves.toMatchObject({
+      rows: [
+        {
+          tmdb_id: 50,
+          status: "processing",
+          attempts: 2,
+          claimed_at: secondClaimAt,
+          last_error: null,
+        },
+        {
+          tmdb_id: 60,
+          status: "processing",
+          attempts: 2,
+          claimed_at: secondClaimAt,
+          last_error: null,
+        },
+      ],
+    });
+  });
+
+  it("resets attempts after a successful hydration before a later refresh fails", async () => {
+    const firstClaimAt = new Date("2026-08-25T12:00:00.000Z");
+    await pool.query(
+      `INSERT INTO tmdb_movie_sync_queue
+         (tmdb_id, popularity, status, attempts, claimed_at, lease_until,
+          last_seen_export_date)
+       VALUES (70, 10, 'processing', 7, $1, '2026-08-25 12:05:00+00', '2026-08-24')`,
+      [firstClaimAt],
+    );
+    await repository.completeMovie(
+      70,
+      firstClaimAt,
+      new Date("2026-08-25T12:01:00.000Z"),
+    );
+    await repository.requestRefresh(
+      [70],
+      new Date("2026-08-25T12:02:00.000Z"),
+    );
+    const secondClaimAt = new Date("2026-08-25T12:03:00.000Z");
+    await repository.claimBatch({
+      limit: 1,
+      now: secondClaimAt,
+      leaseUntil: new Date("2026-08-25T12:08:00.000Z"),
+    });
+    await repository.retryMovie({
+      tmdbId: 70,
+      claimedAt: secondClaimAt,
+      error: "new transient failure",
+      nextAttemptAt: new Date("2026-08-25T12:04:00.000Z"),
+      maxAttempts: 3,
+    });
+
+    await expect(
+      pool.query(
+        `SELECT status, attempts, last_error
+         FROM tmdb_movie_sync_queue
+         WHERE tmdb_id = 70`,
+      ),
+    ).resolves.toMatchObject({
+      rows: [
+        { status: "retry", attempts: 1, last_error: "new transient failure" },
+      ],
+    });
   });
 
   it("returns disjoint ids from concurrent claims", async () => {

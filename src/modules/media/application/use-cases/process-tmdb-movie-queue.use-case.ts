@@ -1,5 +1,5 @@
-import { TmdbHttpError } from "@media/adapters/out/tmdb/tmdb-http.client.js";
 import type { SyncResult } from "@media/application/dto/sync-result.dto.js";
+import { TmdbProviderError } from "@media/application/errors/tmdb-provider.error.js";
 import type { ClaimedTmdbMovie } from "@media/application/models/tmdb-catalog-sync.js";
 import type { TmdbCatalogSyncRepositoryPort } from "@media/application/ports/out/tmdb-catalog-sync-repository.port.js";
 
@@ -70,9 +70,10 @@ export class ProcessTmdbMovieQueueUseCase {
           );
           result.completed += 1;
         } catch (error) {
-          if (error instanceof TmdbHttpError && error.status === 404) {
+          if (error instanceof TmdbProviderError && error.status === 404) {
             await this.repository.markMovieUnavailable(
               claim.tmdbId,
+              claim.claimedAt,
               error.message,
             );
             result.unavailable += 1;
@@ -84,6 +85,7 @@ export class ProcessTmdbMovieQueueUseCase {
             error instanceof Error ? error.message : "Unknown TMDB sync error";
           await this.repository.retryMovie({
             tmdbId: claim.tmdbId,
+            claimedAt: claim.claimedAt,
             error: errorMessage,
             nextAttemptAt: new Date(this.clock().getTime() + retryDelayMs),
             maxAttempts: this.options.maxAttempts,
@@ -128,7 +130,7 @@ export class ProcessTmdbMovieQueueUseCase {
       exponential + Math.max(0, this.jitter(exponential)),
     );
     const retryAfterMs =
-      error instanceof TmdbHttpError ? (error.retryAfterMs ?? 0) : 0;
+      error instanceof TmdbProviderError ? (error.retryAfterMs ?? 0) : 0;
     return Math.max(withJitter, retryAfterMs);
   }
 }

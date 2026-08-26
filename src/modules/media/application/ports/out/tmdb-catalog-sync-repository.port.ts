@@ -35,9 +35,14 @@ export interface TmdbCatalogSyncRepositoryPort {
   ): Promise<void>;
   retryMovie(input: {
     tmdbId: number;
+    claimedAt: Date;
     error: string;
     nextAttemptAt: Date;
     maxAttempts: number;
   }): Promise<void>;
-  markMovieUnavailable(tmdbId: number, error: string): Promise<void>;
+  markMovieUnavailable(
+    tmdbId: number,
+    claimedAt: Date,
+    error: string,
+  ): Promise<void>;
 }

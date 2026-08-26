@@ -18,6 +18,10 @@ interface ChangesStateRow {
   last_completed_changes_at: Date | null;
 }
 
+interface InventoryStateRow {
+  last_completed_export_date: string | null;
+}
+
 interface ClaimedMovieRow {
   tmdb_id: string;
   popularity: number;
@@ -103,6 +107,25 @@ export class PgTmdbCatalogSyncRepository {
 
     try {
       await client.query("BEGIN");
+      const state = await client.query<InventoryStateRow>(
+        `SELECT last_completed_export_date::text AS last_completed_export_date
+         FROM tmdb_catalog_sync_state
+         WHERE singleton = TRUE
+         FOR UPDATE`,
+      );
+      const lastCompletedExportDate =
+        state.rows[0]?.last_completed_export_date ?? undefined;
+      if (
+        lastCompletedExportDate !== undefined &&
+        lastCompletedExportDate >= exportDate
+      ) {
+        await client.query(
+          `DELETE FROM tmdb_movie_inventory_staging WHERE export_date = $1`,
+          [exportDate],
+        );
+        await client.query("COMMIT");
+        return { inserted: 0, updated: 0, missing: 0 };
+      }
       const counts = await client.query<ReconciliationCountRow>(
         `SELECT COUNT(*) FILTER (WHERE queue.tmdb_id IS NULL) AS inserted,
                 COUNT(*) FILTER (WHERE queue.tmdb_id IS NOT NULL) AS updated
@@ -286,6 +309,7 @@ export class PgTmdbCatalogSyncRepository {
              ELSE 'completed'
            END,
            next_attempt_at = NULL,
+           attempts = 0,
            claimed_at = NULL,
            lease_until = NULL,
            last_error = NULL,
@@ -300,6 +324,7 @@ export class PgTmdbCatalogSyncRepository {
 
   async retryMovie(input: {
     tmdbId: number;
+    claimedAt: Date;
     error: string;
     nextAttemptAt: Date;
     maxAttempts: number;
@@ -307,35 +332,47 @@ export class PgTmdbCatalogSyncRepository {
     await this.pool.query(
       `UPDATE tmdb_movie_sync_queue
        SET status = CASE
-             WHEN attempts < $4 THEN 'retry'
+             WHEN attempts < $5 THEN 'retry'
              ELSE 'dead'
            END,
            next_attempt_at = CASE
-             WHEN attempts < $4 THEN $3::timestamptz
+             WHEN attempts < $5 THEN $4::timestamptz
              ELSE NULL
            END,
            claimed_at = NULL,
            lease_until = NULL,
-           last_error = $2,
+           last_error = $3,
            updated_at = NOW()
        WHERE tmdb_id = $1
-         AND status = 'processing'`,
-      [input.tmdbId, input.error, input.nextAttemptAt, input.maxAttempts],
+         AND status = 'processing'
+         AND claimed_at = $2`,
+      [
+        input.tmdbId,
+        input.claimedAt,
+        input.error,
+        input.nextAttemptAt,
+        input.maxAttempts,
+      ],
     );
   }
 
-  async markMovieUnavailable(tmdbId: number, error: string): Promise<void> {
+  async markMovieUnavailable(
+    tmdbId: number,
+    claimedAt: Date,
+    error: string,
+  ): Promise<void> {
     await this.pool.query(
       `UPDATE tmdb_movie_sync_queue
        SET status = 'dead',
            next_attempt_at = NULL,
            claimed_at = NULL,
            lease_until = NULL,
-           last_error = $2,
+           last_error = $3,
            updated_at = NOW()
        WHERE tmdb_id = $1
-         AND status = 'processing'`,
-      [tmdbId, error],
+         AND status = 'processing'
+         AND claimed_at = $2`,
+      [tmdbId, claimedAt, error],
     );
   }
 }

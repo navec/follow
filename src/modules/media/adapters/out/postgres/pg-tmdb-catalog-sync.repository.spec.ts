@@ -293,6 +293,7 @@ describe("PgTmdbCatalogSyncRepository", () => {
     expect(sql).toContain("refresh_requested_at > claimed_at");
     expect(sql).toContain("THEN 'pending'");
     expect(sql).toContain("ELSE 'completed'");
+    expect(sql).toContain("attempts = 0");
     expect(sql).toContain("status = 'processing'");
     expect(sql).toContain("claimed_at = $2");
     expect(values).toEqual([550, claimedAt, completedAt]);
@@ -308,6 +309,7 @@ describe("PgTmdbCatalogSyncRepository", () => {
 
     await repository.retryMovie({
       tmdbId: 550,
+      claimedAt: new Date("2026-08-25T12:00:00.000Z"),
       error: "temporary failure",
       nextAttemptAt,
       maxAttempts: 3,
@@ -317,11 +319,18 @@ describe("PgTmdbCatalogSyncRepository", () => {
       string,
       unknown[],
     ];
-    expect(sql).toContain("WHEN attempts < $4 THEN 'retry'");
+    expect(sql).toContain("WHEN attempts < $5 THEN 'retry'");
     expect(sql).toContain("ELSE 'dead'");
     expect(sql).toContain("status = 'processing'");
-    expect(sql).toContain("last_error = $2");
-    expect(values).toEqual([550, "temporary failure", nextAttemptAt, 3]);
+    expect(sql).toContain("last_error = $3");
+    expect(sql).toContain("claimed_at = $2");
+    expect(values).toEqual([
+      550,
+      new Date("2026-08-25T12:00:00.000Z"),
+      "temporary failure",
+      nextAttemptAt,
+      3,
+    ]);
   });
 
   it("marks an actively processed unavailable movie as terminal", async () => {
@@ -331,11 +340,14 @@ describe("PgTmdbCatalogSyncRepository", () => {
     };
     const repository = new PgTmdbCatalogSyncRepository(pool as never);
 
-    await repository.markMovieUnavailable(550, "TMDB returned 404");
+    const claimedAt = new Date("2026-08-25T12:00:00.000Z");
+    await repository.markMovieUnavailable(550, claimedAt, "TMDB returned 404");
 
     expect(pool.query).toHaveBeenCalledWith(
-      expect.stringMatching(/status = 'dead'[\s\S]*last_error = \$2/),
-      [550, "TMDB returned 404"],
+      expect.stringMatching(
+        /status = 'dead'[\s\S]*last_error = \$3[\s\S]*claimed_at = \$2/,
+      ),
+      [550, claimedAt, "TMDB returned 404"],
     );
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { TmdbHttpError } from "@media/adapters/out/tmdb/tmdb-http.client.js";
 import type { SyncResult } from "@media/application/dto/sync-result.dto.js";
+import { TmdbProviderError } from "@media/application/errors/tmdb-provider.error.js";
 import { ProcessTmdbMovieQueueUseCase } from "@media/application/use-cases/process-tmdb-movie-queue.use-case.js";
 
 const now = new Date("2026-08-25T12:00:00.000Z");
@@ -89,6 +89,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
     ]);
     expect(repository.retryMovie).toHaveBeenCalledWith({
       tmdbId: 2,
+      claimedAt: now,
       error: "PERSISTENCE_ERROR: failed",
       nextAttemptAt: new Date("2026-08-25T12:00:01.000Z"),
       maxAttempts: 8,
@@ -160,12 +161,12 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
     };
     const syncMovie = vi.fn(async (tmdbId: number): Promise<SyncResult> => {
       if (tmdbId === 1) {
-        throw new TmdbHttpError("rate limited", 429, 5000);
+        throw new TmdbProviderError("rate limited", 429, 5000);
       }
       if (tmdbId === 2) {
-        throw new TmdbHttpError("TMDB request timed out");
+        throw new TmdbProviderError("TMDB request timed out");
       }
-      throw new TmdbHttpError("TMDB request failed: 503", 503);
+      throw new TmdbProviderError("TMDB request failed: 503", 503);
     });
     const useCase = new ProcessTmdbMovieQueueUseCase(
       repository as never,
@@ -182,6 +183,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
       [
         {
           tmdbId: 1,
+          claimedAt: now,
           error: "rate limited",
           nextAttemptAt: new Date("2026-08-25T12:00:05.000Z"),
           maxAttempts: 8,
@@ -190,6 +192,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
       [
         {
           tmdbId: 2,
+          claimedAt: now,
           error: "TMDB request timed out",
           nextAttemptAt: new Date("2026-08-25T12:00:04.250Z"),
           maxAttempts: 8,
@@ -198,6 +201,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
       [
         {
           tmdbId: 3,
+          claimedAt: now,
           error: "TMDB request failed: 503",
           nextAttemptAt: new Date("2026-08-25T12:00:06.000Z"),
           maxAttempts: 8,
@@ -217,7 +221,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
     };
     const useCase = new ProcessTmdbMovieQueueUseCase(
       repository as never,
-      vi.fn().mockRejectedValue(new TmdbHttpError("not found", 404)),
+      vi.fn().mockRejectedValue(new TmdbProviderError("not found", 404)),
       options(),
       () => now,
       vi.fn().mockResolvedValue(undefined),
@@ -227,6 +231,7 @@ describe("ProcessTmdbMovieQueueUseCase", () => {
     await expect(useCase.execute()).resolves.toMatchObject({ unavailable: 1 });
     expect(repository.markMovieUnavailable).toHaveBeenCalledWith(
       404,
+      now,
       "not found",
     );
     expect(repository.retryMovie).not.toHaveBeenCalled();

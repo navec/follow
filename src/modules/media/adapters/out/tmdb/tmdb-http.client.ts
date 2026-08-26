@@ -1,3 +1,5 @@
+import { TmdbProviderError } from "@media/application/errors/tmdb-provider.error.js";
+
 interface TmdbHttpClientOptions {
   baseUrl: string;
   readAccessToken: string;
@@ -69,19 +71,14 @@ type TmdbWorkSyncRequest = {
   };
 };
 
-export class TmdbHttpError extends Error {
-  readonly status: number | undefined;
-  readonly retryAfterMs: number | undefined;
-
+export class TmdbHttpError extends TmdbProviderError {
   constructor(
     message: string,
     status?: number,
     retryAfterMs?: number,
   ) {
-    super(message);
+    super(message, status, retryAfterMs);
     this.name = "TmdbHttpError";
-    this.status = status;
-    this.retryAfterMs = retryAfterMs;
   }
 }
 

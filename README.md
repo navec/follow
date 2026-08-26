@@ -44,10 +44,23 @@ Variables clés:
 - `TMDB_DEFAULT_LANGUAGE` et `TMDB_DEFAULT_REGION`
 - `TMDB_REQUEST_TIMEOUT_MS`
 - `MEDIA_SYNC_TMDB_FEED_CRON` (optionnel, expression cron pour un import feed TMDB)
+- `MEDIA_SYNC_TMDB_CATALOG_EXPORT_CRON` (optionnel, réconciliation de l’export quotidien)
+- `MEDIA_SYNC_TMDB_CATALOG_CHANGES_CRON` (optionnel, découverte des films modifiés)
+- `MEDIA_SYNC_TMDB_CATALOG_WORKER_CRON` (optionnel, hydratation d’un lot de films)
+- `TMDB_EXPORT_BASE_URL` (défaut : `https://files.tmdb.org/p/exports/`)
+- `TMDB_CATALOG_STAGE_BATCH_SIZE` (défaut : `1000`)
+- `TMDB_CATALOG_WORKER_BATCH_SIZE` (défaut : `100`)
+- `TMDB_CATALOG_REQUESTS_PER_SECOND` (défaut : `5`)
+- `TMDB_CATALOG_CONCURRENCY` (défaut : `5`)
+- `TMDB_CATALOG_LEASE_SECONDS` (défaut : `300`)
+- `TMDB_CATALOG_MAX_ATTEMPTS` (défaut : `8`)
+- `TMDB_CATALOG_RETRY_BASE_MS` (défaut : `1000`)
+- `TMDB_CATALOG_RETRY_MAX_MS` (défaut : `3600000`)
 
 Sans `TMDB_READ_ACCESS_TOKEN`, l’application démarre sans appel réseau TMDB : les
 feeds sont vides et une synchronisation ciblée utilise uniquement l’identifiant et
-le type demandés. Ce mode dégradé est destiné au développement et aux tests.
+le type demandés. Les crons catalogue sont alors interdits par la validation de
+configuration. Ce mode dégradé est destiné au développement et aux tests.
 
 ## Base Postgres locale (Docker Compose)
 
@@ -244,8 +257,89 @@ Accès requis :
 - permission `media:write`
 
 Media déclare ses jobs planifiés avec un `MediaActor` système dédié, puis Bootstrap
-les enregistre auprès du scheduler. Le premier job supporté est un feed TMDB
-`popular` déclenché par `MEDIA_SYNC_TMDB_FEED_CRON`.
+les enregistre auprès du scheduler. Le feed TMDB `popular` reste déclenché par
+`MEDIA_SYNC_TMDB_FEED_CRON`. Les trois jobs catalogue sont décrits ci-dessous.
+
+## Synchronisation du catalogue complet TMDB
+
+Le catalogue complet est opt-in : aucun job catalogue n’est déclaré tant que ses
+variables cron ne sont pas définies. Exemple de configuration prudente :
+
+```dotenv
+TMDB_READ_ACCESS_TOKEN=...
+MEDIA_SYNC_TMDB_CATALOG_EXPORT_CRON="15 8 * * *"
+MEDIA_SYNC_TMDB_CATALOG_CHANGES_CRON="15 * * * *"
+MEDIA_SYNC_TMDB_CATALOG_WORKER_CRON="*/1 * * * *"
+```
+
+L’inventaire quotidien doit être planifié après 08:00 UTC, heure à partir de
+laquelle le job choisit l’export du jour. Avant 08:00 UTC, il choisit celui de la
+veille. Le job de changements utilise une fenêtre chevauchée d’un jour et rattrape
+au maximum 14 jours par exécution. Le worker traite un lot borné, en respectant le
+débit, la concurrence, les leases et les retries configurés.
+
+Le premier import porte potentiellement sur plusieurs millions de films. Selon le
+débit TMDB, la latence réseau et la capacité PostgreSQL, il peut durer de nombreuses
+heures à plusieurs jours. Il est normal que la queue reste longtemps alimentée ;
+les imports suivants sont incrémentaux. La popularité détermine uniquement l’ordre
+de priorité. Une baisse de popularité ne supprime jamais un film déjà importé.
+
+États de `tmdb_movie_sync_queue` :
+
+- `pending` : prêt à être hydraté ;
+- `processing` : réclamé par un worker jusqu’à l’expiration du lease ;
+- `completed` : dernière hydratation terminée ;
+- `retry` : nouvel essai planifié après une erreur transitoire ;
+- `dead` : indisponible (`404`) ou limite de tentatives atteinte.
+
+Suivi de la progression :
+
+```sql
+SELECT status, COUNT(*)
+FROM tmdb_movie_sync_queue
+GROUP BY status
+ORDER BY status;
+```
+
+Inspection des erreurs terminales :
+
+```sql
+SELECT tmdb_id, attempts, last_error, updated_at
+FROM tmdb_movie_sync_queue
+WHERE status = 'dead'
+ORDER BY updated_at DESC;
+```
+
+Pour relancer manuellement un film après avoir vérifié la cause de l’erreur et son
+éligibilité dans les exports récents, cibler explicitement son identifiant :
+
+```sql
+BEGIN;
+
+SELECT tmdb_id, status, attempts, consecutive_export_misses, last_error
+FROM tmdb_movie_sync_queue
+WHERE tmdb_id = 12345
+FOR UPDATE;
+
+UPDATE tmdb_movie_sync_queue
+SET status = 'retry',
+    attempts = 0,
+    next_attempt_at = NOW(),
+    claimed_at = NULL,
+    lease_until = NULL,
+    last_error = NULL,
+    updated_at = NOW()
+WHERE tmdb_id = 12345
+  AND status = 'dead'
+  AND consecutive_export_misses < 2;
+
+COMMIT;
+```
+
+Ne pas réactiver en masse les lignes `dead` et ne pas contourner les limites de
+débit. L’utilisation des données et images doit conserver l’attribution TMDB
+requise et respecter leurs conditions d’utilisation ainsi que les réponses
+`429 Retry-After`.
 
 ## Migration Postgres (MVP)
 

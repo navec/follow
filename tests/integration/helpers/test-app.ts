@@ -9,9 +9,15 @@ import { getTestDatabaseUrl, migrateTestDbUpOnce } from "@tests/integration/help
 export interface IntegrationTestContext {
   app: Express;
   pgPool: Pool;
+  media: ReturnType<typeof createContainer>["media"];
 }
 
-function createTestEnv(): AppEnv {
+interface IntegrationTestContextOptions {
+  env?: Partial<AppEnv>;
+  fetchImpl?: typeof fetch;
+}
+
+function createTestEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   return {
     NODE_ENV: "test",
     PORT: 0,
@@ -32,19 +38,24 @@ function createTestEnv(): AppEnv {
     TMDB_CATALOG_MAX_ATTEMPTS: 3,
     TMDB_CATALOG_RETRY_BASE_MS: 1,
     TMDB_CATALOG_RETRY_MAX_MS: 10,
+    ...overrides,
   };
 }
 
-export async function createIntegrationTestContext(): Promise<IntegrationTestContext> {
+export async function createIntegrationTestContext(
+  options: IntegrationTestContextOptions = {},
+): Promise<IntegrationTestContext> {
   await migrateTestDbUpOnce();
 
-  const container = createContainer(createTestEnv(), {
+  const container = createContainer(createTestEnv(options.env), {
     logger: pino({ enabled: false }),
+    ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
   });
 
   return {
     app: container.app,
-    pgPool: container.pgPool
+    pgPool: container.pgPool,
+    media: container.media,
   };
 }
 

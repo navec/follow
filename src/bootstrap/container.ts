@@ -20,6 +20,7 @@ import { ZodBodyValidator } from "@shared/http/validation/zod-validator.js";
 
 interface ContainerOptions {
   logger?: Logger;
+  fetchImpl?: typeof fetch;
 }
 
 export function createContainer(
@@ -46,6 +47,7 @@ export function createContainer(
         defaultRegion: env.TMDB_DEFAULT_REGION,
         imageBaseUrl: env.TMDB_IMAGE_BASE_URL,
         requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
       })
     : {
         async getWork(request: {
@@ -79,6 +81,7 @@ export function createContainer(
         exportBaseUrl: env.TMDB_EXPORT_BASE_URL,
         readAccessToken: env.TMDB_READ_ACCESS_TOKEN,
         requestTimeoutMs: env.TMDB_REQUEST_TIMEOUT_MS,
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
       })
     : undefined;
   const mangadexMediaSyncProvider = new MangadexMediaSyncProvider({
